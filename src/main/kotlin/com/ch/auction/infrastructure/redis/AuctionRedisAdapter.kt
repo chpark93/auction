@@ -23,9 +23,9 @@ class AuctionRedisAdapter(
     private val auctionJpaRepository: AuctionJpaRepository
 ) : AuctionRepository {
 
-    private val bidLuaScript: RedisScript<Long> = RedisScript.of(
+    private val bidLuaScript: RedisScript<String> = RedisScript.of(
         ClassPathResource("scripts/bid_script.lua"),
-        Long::class.java
+        String::class.java
     )
 
     override fun tryBid(
@@ -49,23 +49,27 @@ class AuctionRedisAdapter(
             requestTime.toString()
         )
 
-        return when (result) {
-            1L -> {
+        val resultCode = result?.toLongOrNull()
+            ?: throw BusinessException(ErrorCode.UNEXPECTED_STATE_LUA_SCRIPT)
+
+        return when {
+            resultCode > 0 -> {
+                // 성공: resultCode는 Redis 타임스탬프
                 eventPublisher.publishEvent(
                     BidSuccessEvent(
                         auctionId = auctionId,
                         userId = userId,
                         amount = amount,
-                        bidTime = java.time.Instant.ofEpochMilli(requestTime)
+                        bidTime = java.time.Instant.ofEpochMilli(resultCode)
                             .atZone(ZoneId.systemDefault())
                             .toLocalDateTime()
                     )
                 )
                 BidResult.Success(amount)
             }
-            0L -> BidResult.PriceTooLow
-            -1L -> BidResult.AuctionNotFound
-            -2L -> BidResult.AuctionEnded
+            resultCode == 0L -> BidResult.PriceTooLow
+            resultCode == -1L -> BidResult.AuctionNotFound
+            resultCode == -2L -> BidResult.AuctionEnded
             else -> throw BusinessException(ErrorCode.UNEXPECTED_STATE_LUA_SCRIPT)
         }
     }
