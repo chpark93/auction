@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: auction
+  threads:
+    virtual:
+      enabled: true
+  
+  # Database Configuration (H2 for local dev)
+  datasource:
+    url: jdbc:h2:mem:auctiondb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+
+  # Redis Configuration (Local Default)
+  data:
+    redis:
+      host: localhost
+      port: 6379
