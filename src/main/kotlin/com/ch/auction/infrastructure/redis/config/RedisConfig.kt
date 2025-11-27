@@ -1,6 +1,6 @@
 package com.ch.auction.infrastructure.redis.config
 
-import com.ch.auction.infrastructure.redis.RedisMessageSubscriber
+import com.ch.auction.infrastructure.websocket.RedisMessageSubscriber
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.redis.connection.RedisConnectionFactory
@@ -20,7 +20,7 @@ class RedisConfig {
         container.setConnectionFactory(connectionFactory)
         container.addMessageListener(
             messageListenerAdapter,
-            ChannelTopic("auction-updates")
+            ChannelTopic("auction-topic")
         )
         return container
     }
@@ -32,4 +32,3 @@ class RedisConfig {
         return MessageListenerAdapter(subscriber)
     }
 }
-

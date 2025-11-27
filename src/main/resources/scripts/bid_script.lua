@@ -4,16 +4,21 @@
 -- ARGV[3]: request time (timestamp)
 
 local auctionInfo = redis.call('HMGET', KEYS[1], 'currentPrice', 'endTime')
-local currentPrice = tonumber(auctionInfo[1])
-local endTime = tonumber(auctionInfo[2])
 
--- 2. 데이터가 없으면 NOT_FOUND (-1) 반환
-if currentPrice == nil or endTime == nil then
+-- 데이터 존재 여부 확인 (nil 체크 강화)
+if not auctionInfo or not auctionInfo[1] or not auctionInfo[2] then
     return -1
 end
 
-local requestTime = tonumber(ARGV[3])
+local currentPrice = tonumber(auctionInfo[1])
+local endTime = tonumber(auctionInfo[2])
 local newAmount = tonumber(ARGV[1])
+local requestTime = tonumber(ARGV[3])
+
+-- 숫자 변환 유효성 체크
+if not currentPrice or not endTime or not newAmount or not requestTime then
+    return -1
+end
 
 -- 3. endTime < requestTime 이면 ENDED (-2) 반환
 if endTime < requestTime then

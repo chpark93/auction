@@ -13,16 +13,16 @@ class WebSocketConfig : WebSocketMessageBrokerConfigurer {
     override fun configureMessageBroker(
         config: MessageBrokerRegistry
     ) {
-        // /topic으로 시작하는 메시지 -> 메시지 브로커(Redis)로 라우팅
+        // topic message -> 메시지 브로커(Redis)로 라우팅
         config.enableSimpleBroker("/topic")
-        // /app으로 시작하는 메시지 -> @MessageMapping이 붙은 메서드로 라우팅
+        // app message -> @MessageMapping이 붙은 메서드로 라우팅
         config.setApplicationDestinationPrefixes("/app")
     }
 
     override fun registerStompEndpoints(
         registry: StompEndpointRegistry
     ) {
-        // WebSocket Endpoint 등록
+        // WebSocket Endpoint
         registry.addEndpoint("/ws-auction")
             .setAllowedOriginPatterns("*")
             .withSockJS()

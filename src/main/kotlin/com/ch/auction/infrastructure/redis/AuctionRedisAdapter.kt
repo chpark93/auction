@@ -1,7 +1,7 @@
 package com.ch.auction.infrastructure.redis
 
 import com.ch.auction.application.exception.BusinessException
-import com.ch.auction.domain.event.BidAcceptedEvent
+import com.ch.auction.domain.event.BidSuccessEvent
 import com.ch.auction.domain.repository.AuctionRepository
 import com.ch.auction.domain.repository.BidResult
 import com.ch.auction.infrastructure.persistence.AuctionJpaRepository
@@ -52,10 +52,10 @@ class AuctionRedisAdapter(
         return when (result) {
             1L -> {
                 eventPublisher.publishEvent(
-                    BidAcceptedEvent(
+                    BidSuccessEvent(
                         auctionId = auctionId,
                         userId = userId,
-                        amount = amount.toLong(),
+                        amount = amount,
                         bidTime = java.time.Instant.ofEpochMilli(requestTime)
                             .atZone(ZoneId.systemDefault())
                             .toLocalDateTime()
@@ -86,6 +86,8 @@ class AuctionRedisAdapter(
             "endTime" to endTimeMillis.toString()
         )
 
+        // 기존 데이터가 있다면 삭제 후 적재 (초기화 보장)
+        redisTemplate.delete(key)
         redisTemplate.opsForHash<String, String>().putAll(key, map)
     }
 }

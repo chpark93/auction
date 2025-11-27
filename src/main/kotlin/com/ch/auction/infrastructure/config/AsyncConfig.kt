@@ -1,4 +1,4 @@
-package com.ch.auction.interfaces.config
+package com.ch.auction.infrastructure.config
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -11,12 +11,11 @@ import java.util.concurrent.Executors
 @EnableAsync
 class AsyncConfig {
 
-    @Bean(name = [
-        "applicationTaskExecutor",
-        "taskExecutor"
-    ])
-    fun applicationTaskExecutor(): AsyncTaskExecutor {
-        return TaskExecutorAdapter(Executors.newVirtualThreadPerTaskExecutor())
+    @Bean(name = ["taskExecutor"])
+    fun taskExecutor(): AsyncTaskExecutor {
+        return TaskExecutorAdapter(
+            Executors.newVirtualThreadPerTaskExecutor()
+        )
     }
 }
 

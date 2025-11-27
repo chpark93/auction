@@ -1,48 +1,48 @@
 package com.ch.auction.infrastructure.event
 
 import com.ch.auction.domain.Bid
-import com.ch.auction.domain.event.BidAcceptedEvent
+import com.ch.auction.domain.event.BidSuccessEvent
 import com.ch.auction.infrastructure.persistence.AuctionJpaRepository
 import com.ch.auction.infrastructure.persistence.BidJpaRepository
-import com.fasterxml.jackson.databind.ObjectMapper
+import org.slf4j.LoggerFactory
 import org.springframework.context.event.EventListener
-import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
 @Component
-class BidEventListener(
+class BidPersistenceListener(
     private val bidJpaRepository: BidJpaRepository,
-    private val auctionJpaRepository: AuctionJpaRepository,
-    private val redisTemplate: StringRedisTemplate,
-    private val objectMapper: ObjectMapper
+    private val auctionJpaRepository: AuctionJpaRepository
 ) {
+
+    private val log = LoggerFactory.getLogger(javaClass)
+
     @Async
     @EventListener
     @Transactional
-    fun handleBidAccepted(event: BidAcceptedEvent) {
-        // Bid 엔티티 저장 (이력)
+    fun handleBidSuccess(event: BidSuccessEvent) {
+        // Virtual Thread 동작 확인 로그
+        if (log.isDebugEnabled) {
+            log.debug("Async processing in thread: {}", Thread.currentThread())
+        }
+        // 필요 시 info 레벨로 출력하여 확인 가능 (부하 테스트 시에는 로그 양이 많으므로 주의)
+        // log.info("Async processing in thread: {}", Thread.currentThread())
+
+        // Bid 저장 (이력)
         val bid = Bid(
             auctionId = event.auctionId,
             userId = event.userId,
-            amount = event.amount,
+            amount = event.amount.toLong(),
             bidTime = event.bidTime
         )
 
         bidJpaRepository.save(bid)
 
-        // Auction 현재가 갱신
-        // 현재가보다 높을 때만 업데이트
+        // Auction 현재가 업데이트
         auctionJpaRepository.updateCurrentPriceIfHigher(
             id = event.auctionId,
-            price = event.amount
+            price = event.amount.toLong()
         )
-        
-        // 3. Redis message 발행
-        val message = objectMapper.writeValueAsString(event)
-
-        redisTemplate.convertAndSend("auction-updates", message)
     }
 }
-
