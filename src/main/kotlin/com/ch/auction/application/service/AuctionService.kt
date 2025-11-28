@@ -18,16 +18,14 @@ class AuctionService(
     fun placeBid(
         auctionId: Long,
         userId: Long,
-        amount: BigDecimal,
-        maxLimit: BigDecimal = BigDecimal.ZERO
+        amount: BigDecimal
     ): BigDecimal {
         val requestTime = Instant.now().toEpochMilli()
         val result = auctionRepository.tryBid(
             auctionId = auctionId,
             userId = userId,
             amount = amount,
-            requestTime = requestTime,
-            maxLimit = maxLimit
+            requestTime = requestTime
         )
 
         return when (result) {
@@ -37,7 +35,12 @@ class AuctionService(
             is BidResult.AuctionNotFound -> throw BusinessException(ErrorCode.AUCTION_NOT_FOUND)
             is BidResult.SelfBidding -> throw BusinessException(ErrorCode.SELF_BIDDING_NOT_ALLOWED)
             is BidResult.NotEnoughPoint -> throw BusinessException(ErrorCode.NOT_ENOUGH_POINT)
-            is BidResult.Outbidded -> throw BusinessException(ErrorCode.OUTBIDDED)
         }
+    }
+
+    fun getAuctionCurrentPrice(auctionId: Long): BigDecimal {
+        val info = auctionRepository.getAuctionRedisInfo(auctionId)
+            ?: throw BusinessException(ErrorCode.AUCTION_NOT_FOUND)
+        return BigDecimal.valueOf(info.currentPrice)
     }
 }

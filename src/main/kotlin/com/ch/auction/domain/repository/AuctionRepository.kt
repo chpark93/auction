@@ -10,8 +10,7 @@ interface AuctionRepository {
         auctionId: Long,
         userId: Long,
         amount: BigDecimal,
-        requestTime: Long,
-        maxLimit: BigDecimal = BigDecimal.ZERO
+        requestTime: Long
     ): BidResult
 
     /**

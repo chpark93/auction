@@ -36,61 +36,91 @@ class AuctionRedisAdapter(
         auctionId: Long,
         userId: Long,
         amount: BigDecimal,
-        requestTime: Long,
-        maxLimit: BigDecimal
+        requestTime: Long
     ): BidResult {
         val key = "auction:$auctionId"
 
-        /**
-         * ARGV[1]: amount
-         * ARGV[2]: userId
-         * ARGV[3]: requestTime
-         * ARGV[4]: minIncrement
-         * ARGV[5]: maxLimit
-         */
-        val result = redisTemplate.execute(
+        val result = executeLuaScript(
+            key = key,
+            userId = userId,
+            amount = amount,
+            requestTime = requestTime
+        )
+
+        return handleLuaResult(
+            result = result,
+            auctionId = auctionId,
+            userId = userId,
+            amount = amount
+        )
+    }
+
+    private fun executeLuaScript(
+        key: String,
+        userId: Long,
+        amount: BigDecimal,
+        requestTime: Long
+    ): String {
+        return redisTemplate.execute(
             bidLuaScript,
             Collections.singletonList(key),
             amount.toPlainString(),
             userId.toString(),
-            requestTime.toString(),
-            "1000", // minIncrement
-            maxLimit.toPlainString()
+            requestTime.toString()
+        )
+    }
+
+    private fun handleLuaResult(
+        result: String,
+        auctionId: Long,
+        userId: Long,
+        amount: BigDecimal
+    ): BidResult {
+        when (result) {
+            AuctionLuaResult.PRICE_TOO_LOW.code -> return BidResult.PriceTooLow
+            AuctionLuaResult.AUCTION_NOT_FOUND.code -> return BidResult.AuctionNotFound
+            AuctionLuaResult.AUCTION_ENDED.code -> return BidResult.AuctionEnded
+            AuctionLuaResult.SELF_BIDDING.code -> return BidResult.SelfBidding
+            AuctionLuaResult.NOT_ENOUGH_POINT.code -> return BidResult.NotEnoughPoint
+        }
+
+        processSuccess(
+            result = result,
+            auctionId = auctionId,
+            userId = userId,
+            amount = amount
         )
 
-        return when (result) {
-            AuctionLuaResult.PRICE_TOO_LOW.code -> BidResult.PriceTooLow
-            AuctionLuaResult.AUCTION_NOT_FOUND.code -> BidResult.AuctionNotFound
-            AuctionLuaResult.AUCTION_ENDED.code -> BidResult.AuctionEnded
-            AuctionLuaResult.SELF_BIDDING.code -> BidResult.SelfBidding
-            AuctionLuaResult.NOT_ENOUGH_POINT.code -> BidResult.NotEnoughPoint
-            AuctionLuaResult.OUTBID.code -> BidResult.Outbidded
-            else -> {
-                val parts = result.split(":")
-                if (parts.size != 2) {
-                    throw BusinessException(ErrorCode.UNEXPECTED_STATE_LUA_SCRIPT)
-                }
+        return BidResult.Success(
+            newPrice = amount
+        )
+    }
 
-                val timestamp = parts[0].toLong()
-                val sequence = parts[1].toLong()
-
-                eventPublisher.publishEvent(
-                    BidSuccessEvent(
-                        auctionId = auctionId,
-                        userId = userId,
-                        amount = amount,
-                        bidTime = Instant.ofEpochMilli(timestamp)
-                            .atZone(ZoneId.systemDefault())
-                            .toLocalDateTime(),
-                        sequence = sequence
-                    )
-                )
-
-                BidResult.Success(
-                    newPrice = amount
-                )
-            }
+    private fun processSuccess(
+        result: String,
+        auctionId: Long,
+        userId: Long,
+        amount: BigDecimal
+    ) {
+        val parts = result.split(":")
+        if (parts.size != 2) {
+            throw BusinessException(ErrorCode.UNEXPECTED_STATE_LUA_SCRIPT)
         }
+
+        val timestamp = parts[0].toLong()
+        val sequence = parts[1].toLong()
+
+        eventPublisher.publishEvent(
+            BidSuccessEvent(
+                auctionId = auctionId,
+                userId = userId,
+                amount = amount,
+                bidTime = Instant.ofEpochMilli(timestamp)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDateTime(),
+                sequence = sequence
+            )
+        )
     }
 
     @Transactional(readOnly = true)

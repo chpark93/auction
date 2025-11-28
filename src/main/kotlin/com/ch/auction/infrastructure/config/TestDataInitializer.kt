@@ -41,9 +41,11 @@ class TestDataInitializer(
                 auctionId = savedAuction.id!!
             )
 
-            // 테스트 유저 (ID: 100) 포인트 충전
-            userPointRepository.chargePoint(100L, 10000000L)
-            logger.info("Charged 10,000,000 points to user 100")
+            // 테스트 유저 (ID: 1 ~ 1000) 포인트 충전 (부하 테스트용)
+            for (i in 1..1000) {
+                userPointRepository.chargePoint(i.toLong(), 100_000_000_000L) // 넉넉하게 충전
+            }
+            logger.info("Charged points to users 1-1000")
 
             logger.info("Test Auction created: ID=${savedAuction.id}, Price=${savedAuction.startPrice}")
         }
