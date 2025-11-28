@@ -23,10 +23,12 @@ enum class ErrorCode(
     AUCTION_ALREADY_ENDED(HttpStatus.BAD_REQUEST, "A008", "Auction has already ended"),
     AUCTION_ALREADY_STARTED(HttpStatus.BAD_REQUEST, "A009", "Auction has already started"),
     AUCTION_NOT_ENDED(HttpStatus.BAD_REQUEST, "A010", "Auction is not ended"),
+    AUCTION_NOT_PENDING(HttpStatus.BAD_REQUEST, "A011", "Auction is not pending approval"),
 
     // Bid
     BID_FAILED(HttpStatus.BAD_REQUEST, "B001", "Bid failed"),
     BID_AMOUNT_HIGHER_THAN_CURRENT_PRICE(HttpStatus.BAD_REQUEST, "B002", "Bid amount must be higher than current price"),
+    SELF_BIDDING_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "B003", "Self bidding is not allowed"),
 
     // Lua Script Errors
     UNEXPECTED_STATE_LUA_SCRIPT(HttpStatus.INTERNAL_SERVER_ERROR, "S001", "Unexpected result from Lua script")

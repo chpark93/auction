@@ -66,5 +66,22 @@ class AuctionAdminController(
         auctionAdminService.endAuction(id)
         return ResponseEntity.ok(ApiResponse.ok())
     }
-}
 
+    @PatchMapping("/{id}/approve")
+    fun approveAuction(
+        @PathVariable id: Long
+    ): ResponseEntity<ApiResponse<Unit>> {
+        auctionAdminService.approveAuction(id)
+        return ResponseEntity.ok(ApiResponse.ok())
+    }
+
+    @PatchMapping("/{id}/reject")
+    fun rejectAuction(
+        @PathVariable id: Long,
+        @RequestBody(required = false) request: Map<String, String>?
+    ): ResponseEntity<ApiResponse<Unit>> {
+        val reason = request?.get("reason") ?: "Rejected by admin"
+        auctionAdminService.rejectAuction(id, reason)
+        return ResponseEntity.ok(ApiResponse.ok())
+    }
+}

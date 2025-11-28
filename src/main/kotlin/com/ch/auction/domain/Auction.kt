@@ -14,6 +14,7 @@ class Auction(
     startPrice: Long,
     startTime: LocalDateTime,
     endTime: LocalDateTime,
+    sellerId: Long,
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,9 +40,12 @@ class Auction(
     var currentPrice: Long = startPrice
         private set
 
+    @Column(nullable = false)
+    val sellerId: Long = sellerId
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    var status: AuctionStatus = AuctionStatus.READY
+    var status: AuctionStatus = AuctionStatus.PENDING
         private set
 
     @Column(nullable = false)
@@ -87,7 +91,11 @@ class Auction(
         startTime: LocalDateTime,
         endTime: LocalDateTime
     ) {
-        if (this.status != AuctionStatus.READY) {
+        // PENDING 상태일 때만 수정 가능하도록 변경하거나, READY/APPROVED도 허용할지 결정
+        // 여기서는 PENDING, READY, APPROVED 모두 시작 전이므로 허용
+        if (this.status != AuctionStatus.PENDING && 
+            this.status != AuctionStatus.READY && 
+            this.status != AuctionStatus.APPROVED) {
             throw BusinessException(ErrorCode.AUCTION_ALREADY_STARTED)
         }
         this.title = title
@@ -99,12 +107,13 @@ class Auction(
 
     /**
      * 경매 시작
-     * READY -> ONGOING
+     * READY/APPROVED -> ONGOING
      */
     fun startAuction() {
-        if (this.status != AuctionStatus.READY) {
+        if (this.status != AuctionStatus.READY && this.status != AuctionStatus.APPROVED) {
             throw BusinessException(ErrorCode.ACTION_NOT_READY)
         }
+
         this.status = AuctionStatus.ONGOING
     }
 
@@ -142,6 +151,26 @@ class Auction(
     }
 
     /**
+     * 승인 (PENDING -> APPROVED)
+     */
+    fun approve() {
+        if (this.status != AuctionStatus.PENDING) {
+            throw BusinessException(ErrorCode.AUCTION_NOT_PENDING)
+        }
+        this.status = AuctionStatus.APPROVED
+    }
+
+    /**
+     * 거절 (PENDING -> REJECTED)
+     */
+    fun reject(reason: String) {
+        if (this.status != AuctionStatus.PENDING) {
+            throw BusinessException(ErrorCode.AUCTION_NOT_PENDING)
+        }
+        this.status = AuctionStatus.REJECTED
+    }
+
+    /**
      * 삭제
      */
     fun delete() {
@@ -172,6 +201,6 @@ class Auction(
             throw BusinessException(ErrorCode.BID_AMOUNT_HIGHER_THAN_CURRENT_PRICE)
         }
     }
-    
+
     fun endAuction() = closeAuction()
 }

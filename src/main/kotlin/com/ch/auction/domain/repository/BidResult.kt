@@ -11,5 +11,5 @@ sealed class BidResult {
     object PriceTooLow : BidResult()
     object AuctionEnded : BidResult()
     object AuctionNotFound : BidResult()
+    object SelfBidding : BidResult()
 }
-

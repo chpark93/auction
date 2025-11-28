@@ -1,7 +1,9 @@
 package com.ch.auction.infrastructure.redis
 
 import com.ch.auction.application.exception.BusinessException
+import com.ch.auction.domain.AuctionLuaResult
 import com.ch.auction.domain.event.BidSuccessEvent
+import com.ch.auction.domain.repository.AuctionRedisInfo
 import com.ch.auction.domain.repository.AuctionRepository
 import com.ch.auction.domain.repository.BidResult
 import com.ch.auction.infrastructure.persistence.AuctionJpaRepository
@@ -13,6 +15,7 @@ import org.springframework.data.redis.core.script.RedisScript
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
+import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 
@@ -50,9 +53,10 @@ class AuctionRedisAdapter(
         )
 
         return when (result) {
-            "0" -> BidResult.PriceTooLow
-            "-1" -> BidResult.AuctionNotFound
-            "-2" -> BidResult.AuctionEnded
+            AuctionLuaResult.PRICE_TOO_LOW.code -> BidResult.PriceTooLow
+            AuctionLuaResult.AUCTION_NOT_FOUND.code -> BidResult.AuctionNotFound
+            AuctionLuaResult.AUCTION_ENDED.code -> BidResult.AuctionEnded
+            AuctionLuaResult.SELF_BIDDING.code -> BidResult.SelfBidding
             else -> {
                 val parts = result.split(":")
                 if (parts.size != 2) {
@@ -67,7 +71,7 @@ class AuctionRedisAdapter(
                         auctionId = auctionId,
                         userId = userId,
                         amount = amount,
-                        bidTime = java.time.Instant.ofEpochMilli(timestamp)
+                        bidTime = Instant.ofEpochMilli(timestamp)
                             .atZone(ZoneId.systemDefault())
                             .toLocalDateTime(),
                         sequence = sequence
@@ -95,11 +99,43 @@ class AuctionRedisAdapter(
         val map = mapOf(
             "currentPrice" to auction.currentPrice.toString(),
             "endTime" to endTimeMillis.toString(),
-            "bidSequence" to "0" // 시퀀스 초기화
+            "bidSequence" to "0",
+            "sellerId" to auction.sellerId.toString()
         )
 
         // 기존 데이터가 있다면 삭제 후 적재
         redisTemplate.delete(key)
         redisTemplate.opsForHash<String, String>().putAll(key, map)
+    }
+
+    override fun getAuctionRedisInfo(
+        auctionId: Long
+    ): AuctionRedisInfo? {
+        val key = "auction:$auctionId"
+        val entries = redisTemplate.opsForHash<String, String>().entries(key)
+        if (entries.isEmpty()) return null
+
+        val currentPrice = entries["currentPrice"]?.toLongOrNull() ?: 0L
+        val lastBidderId = entries["lastBidderId"]?.toLongOrNull()
+
+        return AuctionRedisInfo(
+            currentPrice = currentPrice,
+            lastBidderId = lastBidderId
+        )
+    }
+
+    override fun deleteAuctionRedisInfo(
+        auctionId: Long
+    ) {
+        val key = "auction:$auctionId"
+        redisTemplate.delete(key)
+    }
+
+    override fun expireAuctionRedisInfo(
+        auctionId: Long,
+        seconds: Long
+    ) {
+        val key = "auction:$auctionId"
+        redisTemplate.expire(key, java.time.Duration.ofSeconds(seconds))
     }
 }

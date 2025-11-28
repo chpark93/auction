@@ -39,6 +39,10 @@ dependencies {
 
 	// Distributed Lock
 	implementation("org.redisson:redisson-spring-boot-starter:3.37.0")
+
+    // ShedLock
+    implementation("net.javacrumbs.shedlock:shedlock-spring:5.10.2")
+    implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.10.2")
 }
 
 kotlin {

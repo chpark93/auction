@@ -27,9 +27,11 @@ class TestDataInitializer(
                 title = "Test Auction Item",
                 startPrice = 1000L,
                 startTime = LocalDateTime.now().minusMinutes(1),
-                endTime = LocalDateTime.now().plusDays(1)
+                endTime = LocalDateTime.now().plusDays(1),
+                sellerId = 9999L
             )
 
+            auction.approve()
             auction.startAuction()
             
             val savedAuction = auctionJpaRepository.save(auction)
@@ -41,4 +43,3 @@ class TestDataInitializer(
         }
     }
 }
-

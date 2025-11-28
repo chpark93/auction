@@ -33,6 +33,7 @@ class AuctionService(
             is BidResult.PriceTooLow -> throw BusinessException(ErrorCode.PRICE_TOO_LOW)
             is BidResult.AuctionEnded -> throw BusinessException(ErrorCode.AUCTION_ENDED)
             is BidResult.AuctionNotFound -> throw BusinessException(ErrorCode.AUCTION_NOT_FOUND)
+            is BidResult.SelfBidding -> throw BusinessException(ErrorCode.SELF_BIDDING_NOT_ALLOWED)
         }
     }
 }

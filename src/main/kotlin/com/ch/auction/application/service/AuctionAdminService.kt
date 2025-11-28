@@ -26,8 +26,16 @@ class AuctionAdminService(
             title = request.title,
             startPrice = request.startPrice,
             startTime = request.startTime,
-            endTime = request.endTime
+            endTime = request.endTime,
+            sellerId = 0L // 관리자 생성
         )
+        
+        // 관리자 생성은 바로 승인 상태로? 혹은 READY 상태로?
+        // Auction 기본값이 PENDING이므로, 관리자가 생성하면 바로 승인 처리하거나 READY 상태로 변경 필요할 수도 있음.
+        // 여기서는 PENDING으로 생성하고 별도 승인이 필요하다고 가정하거나, 
+        // 편의상 approve() 호출하여 APPROVED 상태로 만들 수도 있음.
+        // 일단 PENDING 상태로 둠.
+        
         val saved = auctionJpaRepository.save(auction)
         
         return AuctionAdminResponse.from(saved)
@@ -58,7 +66,10 @@ class AuctionAdminService(
         val auction = auctionJpaRepository.findById(id)
             .orElseThrow { BusinessException(ErrorCode.AUCTION_NOT_FOUND) }
             
-        if (auction.status != AuctionStatus.READY) {
+        // PENDING, READY, APPROVED 상태에서 삭제 가능하도록 수정 필요
+        if (auction.status != AuctionStatus.PENDING && 
+            auction.status != AuctionStatus.READY &&
+            auction.status != AuctionStatus.APPROVED) {
             throw BusinessException(ErrorCode.AUCTION_ALREADY_STARTED)
         }
         
@@ -87,5 +98,19 @@ class AuctionAdminService(
             .orElseThrow { BusinessException(ErrorCode.AUCTION_NOT_FOUND) }
             
         auction.closeAuction()
+    }
+
+    @Transactional
+    fun approveAuction(id: Long) {
+        val auction = auctionJpaRepository.findById(id)
+            .orElseThrow { BusinessException(ErrorCode.AUCTION_NOT_FOUND) }
+        auction.approve()
+    }
+
+    @Transactional
+    fun rejectAuction(id: Long, reason: String) {
+        val auction = auctionJpaRepository.findById(id)
+            .orElseThrow { BusinessException(ErrorCode.AUCTION_NOT_FOUND) }
+        auction.reject(reason)
     }
 }

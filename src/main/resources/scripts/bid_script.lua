@@ -3,7 +3,7 @@
 -- ARGV[2]: user id
 -- ARGV[3]: request time (timestamp) - 경매 종료 체크용
 
-local auctionInfo = redis.call('HMGET', KEYS[1], 'currentPrice', 'endTime')
+local auctionInfo = redis.call('HMGET', KEYS[1], 'currentPrice', 'endTime', 'lastBidderId', 'sellerId')
 
 if not auctionInfo or not auctionInfo[1] or not auctionInfo[2] then
     return "-1" -- Not Found
@@ -11,6 +11,9 @@ end
 
 local currentPrice = tonumber(auctionInfo[1])
 local endTime = tonumber(auctionInfo[2])
+local lastBidderId = auctionInfo[3]
+local sellerId = auctionInfo[4]
+
 local newAmount = tonumber(ARGV[1])
 local requestTime = tonumber(ARGV[3])
 
@@ -21,6 +24,16 @@ end
 -- 종료 시간 체크
 if endTime < requestTime then
     return "-2" -- Ended
+end
+
+-- 판매자 입찰 금지 (Self-Bidding)
+if sellerId and sellerId == ARGV[2] then
+    return "-3"
+end
+
+-- 연속 입찰 금지 (Optional)
+if lastBidderId and lastBidderId == ARGV[2] then
+    return "-3"
 end
 
 -- 가격 체크

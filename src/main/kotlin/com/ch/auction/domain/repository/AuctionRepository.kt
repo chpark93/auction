@@ -19,4 +19,22 @@ interface AuctionRepository {
     fun loadAuctionToRedis(
         auctionId: Long
     )
+
+    fun getAuctionRedisInfo(
+        auctionId: Long
+    ): AuctionRedisInfo?
+
+    fun deleteAuctionRedisInfo(
+        auctionId: Long
+    )
+
+    fun expireAuctionRedisInfo(
+        auctionId: Long,
+        seconds: Long
+    )
 }
+
+data class AuctionRedisInfo(
+    val currentPrice: Long,
+    val lastBidderId: Long?
+)
