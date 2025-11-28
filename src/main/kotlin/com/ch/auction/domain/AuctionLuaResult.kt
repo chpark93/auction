@@ -6,7 +6,9 @@ enum class AuctionLuaResult(
     PRICE_TOO_LOW("0"),
     AUCTION_NOT_FOUND("-1"),
     AUCTION_ENDED("-2"),
-    SELF_BIDDING("-3")
+    SELF_BIDDING("-3"),
+    NOT_ENOUGH_POINT("-4"),
+    OUTBID("-5")
     ;
 
     companion object {

@@ -15,6 +15,7 @@ import org.springframework.data.redis.core.script.RedisScript
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.util.*
@@ -35,7 +36,8 @@ class AuctionRedisAdapter(
         auctionId: Long,
         userId: Long,
         amount: BigDecimal,
-        requestTime: Long
+        requestTime: Long,
+        maxLimit: BigDecimal
     ): BidResult {
         val key = "auction:$auctionId"
 
@@ -43,13 +45,17 @@ class AuctionRedisAdapter(
          * ARGV[1]: amount
          * ARGV[2]: userId
          * ARGV[3]: requestTime
+         * ARGV[4]: minIncrement
+         * ARGV[5]: maxLimit
          */
         val result = redisTemplate.execute(
             bidLuaScript,
             Collections.singletonList(key),
             amount.toPlainString(),
             userId.toString(),
-            requestTime.toString()
+            requestTime.toString(),
+            "1000", // minIncrement
+            maxLimit.toPlainString()
         )
 
         return when (result) {
@@ -57,6 +63,8 @@ class AuctionRedisAdapter(
             AuctionLuaResult.AUCTION_NOT_FOUND.code -> BidResult.AuctionNotFound
             AuctionLuaResult.AUCTION_ENDED.code -> BidResult.AuctionEnded
             AuctionLuaResult.SELF_BIDDING.code -> BidResult.SelfBidding
+            AuctionLuaResult.NOT_ENOUGH_POINT.code -> BidResult.NotEnoughPoint
+            AuctionLuaResult.OUTBID.code -> BidResult.Outbidded
             else -> {
                 val parts = result.split(":")
                 if (parts.size != 2) {
@@ -136,6 +144,6 @@ class AuctionRedisAdapter(
         seconds: Long
     ) {
         val key = "auction:$auctionId"
-        redisTemplate.expire(key, java.time.Duration.ofSeconds(seconds))
+        redisTemplate.expire(key, Duration.ofSeconds(seconds))
     }
 }

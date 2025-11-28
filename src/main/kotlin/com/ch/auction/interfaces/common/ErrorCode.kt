@@ -29,6 +29,8 @@ enum class ErrorCode(
     BID_FAILED(HttpStatus.BAD_REQUEST, "B001", "Bid failed"),
     BID_AMOUNT_HIGHER_THAN_CURRENT_PRICE(HttpStatus.BAD_REQUEST, "B002", "Bid amount must be higher than current price"),
     SELF_BIDDING_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "B003", "Self bidding is not allowed"),
+    NOT_ENOUGH_POINT(HttpStatus.BAD_REQUEST, "B004", "Not enough point"),
+    OUTBIDDED(HttpStatus.BAD_REQUEST, "B005", "Outbidded by auto bidder"),
 
     // Lua Script Errors
     UNEXPECTED_STATE_LUA_SCRIPT(HttpStatus.INTERNAL_SERVER_ERROR, "S001", "Unexpected result from Lua script")

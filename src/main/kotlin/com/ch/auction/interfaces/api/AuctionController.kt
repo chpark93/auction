@@ -21,7 +21,8 @@ class AuctionController(
         val newPrice = auctionService.placeBid(
             auctionId = id,
             userId = request.userId,
-            amount = request.amount
+            amount = request.amount,
+            maxLimit = request.maxLimit
         )
 
         return ResponseEntity.ok(

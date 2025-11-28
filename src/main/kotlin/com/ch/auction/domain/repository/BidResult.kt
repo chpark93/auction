@@ -12,4 +12,6 @@ sealed class BidResult {
     object AuctionEnded : BidResult()
     object AuctionNotFound : BidResult()
     object SelfBidding : BidResult()
+    object NotEnoughPoint : BidResult()
+    object Outbidded : BidResult()
 }
