@@ -22,6 +22,7 @@ class RedisConfig {
             messageListenerAdapter,
             ChannelTopic("auction-topic")
         )
+
         return container
     }
 

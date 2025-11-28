@@ -21,13 +21,15 @@ class BidPersistenceListener(
     @Async
     @EventListener
     @Transactional
-    fun handleBidSuccess(event: BidSuccessEvent) {
+    fun handleBidSuccess(
+        event: BidSuccessEvent
+    ) {
         if (logger.isDebugEnabled) {
             logger.debug("Async processing in thread: {}", Thread.currentThread())
         }
 
         // Bid 저장 (이력)
-        val bid = Bid(
+        val bid = Bid.create(
             auctionId = event.auctionId,
             userId = event.userId,
             amount = event.amount.toLong(),

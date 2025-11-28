@@ -15,7 +15,9 @@ class BidNotificationListener(
 
     @Async
     @EventListener
-    fun handleBidSuccess(event: BidSuccessEvent) {
+    fun handleBidSuccess(
+        event: BidSuccessEvent
+    ) {
         val message = objectMapper.writeValueAsString(event)
 
         // Redis Message 발행 (auction-topic)

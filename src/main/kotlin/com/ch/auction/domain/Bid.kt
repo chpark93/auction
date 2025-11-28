@@ -11,7 +11,7 @@ import java.time.LocalDateTime
     )
 ])
 @SQLRestriction("deleted = false")
-class Bid(
+class Bid private constructor(
     @Column(nullable = false)
     val auctionId: Long,
 
@@ -22,10 +22,10 @@ class Bid(
     val amount: Long,
 
     @Column(nullable = false)
-    val bidTime: LocalDateTime = LocalDateTime.now(),
+    val bidTime: LocalDateTime,
 
     @Column(nullable = false)
-    val sequence: Long, // Redis에서 발급한 순서 번호
+    val sequence: Long,
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,6 +34,24 @@ class Bid(
     @Column(nullable = false)
     var deleted: Boolean = false
         private set
+
+    companion object {
+        fun create(
+            auctionId: Long,
+            userId: Long,
+            amount: Long,
+            bidTime: LocalDateTime = LocalDateTime.now(),
+            sequence: Long
+        ): Bid {
+            return Bid(
+                auctionId = auctionId,
+                userId = userId,
+                amount = amount,
+                bidTime = bidTime,
+                sequence = sequence
+            )
+        }
+    }
 
     fun delete() {
         this.deleted = true

@@ -25,7 +25,7 @@ class TestDataInitializer(
         if (auctionJpaRepository.count() == 0L) {
             logger.info("Initializing test data...")
             
-            val auction = Auction(
+            val auction = Auction.create(
                 title = "Test Auction Item",
                 startPrice = 1000L,
                 startTime = LocalDateTime.now().minusMinutes(1),

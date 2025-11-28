@@ -24,7 +24,11 @@ class UserPointController(
             request = request
         )
 
-        return ResponseEntity.ok(ApiResponse.ok(response))
+        return ResponseEntity.ok(
+            ApiResponse.ok(
+                data = response
+            )
+        )
     }
 
     @GetMapping("/me")
@@ -36,7 +40,11 @@ class UserPointController(
             userId = userId
         )
 
-        return ResponseEntity.ok(ApiResponse.ok(response))
+        return ResponseEntity.ok(
+            ApiResponse.ok(
+                data = response
+            )
+        )
     }
 }
 

@@ -13,6 +13,7 @@ data class AuctionAdminResponse(
     val endTime: LocalDateTime,
     val status: AuctionStatus
 ) {
+
     companion object {
         fun from(
             auction: Auction

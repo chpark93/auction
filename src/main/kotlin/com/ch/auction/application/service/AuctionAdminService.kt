@@ -22,7 +22,7 @@ class AuctionAdminService(
     fun createAuction(
         request: AuctionCreateRequest
     ): AuctionAdminResponse {
-        val auction = Auction(
+        val auction = Auction.create(
             title = request.title,
             startPrice = request.startPrice,
             startTime = request.startTime,

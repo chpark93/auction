@@ -1,5 +1,6 @@
 package com.ch.auction.domain
 
+import com.ch.auction.application.exception.BusinessException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
@@ -14,7 +15,8 @@ class AuctionTest {
             startPrice = 1000
         )
 
-        // READY -> ONGOING
+        // PENDING -> APPROVED -> ONGOING
+        auction.approve()
         auction.startAuction()
 
         val userId = 1L
@@ -39,10 +41,11 @@ class AuctionTest {
             startPrice = 1000
         )
 
+        auction.approve()
         auction.startAuction()
         
         // when & then
-        assertThrows(IllegalArgumentException::class.java) {
+        assertThrows(BusinessException::class.java) {
             auction.placeBid(1L, 100L)
         }
     }
@@ -51,10 +54,10 @@ class AuctionTest {
     fun bid_when_auction_status_is_not_ongoing_throws_exception() {
         // given
         val auction = createAuction(startPrice = 1000)
-        // startAuction() 호출 안 함 -> READY 상태
+        // startAuction() 호출 안 함 -> PENDING 상태
 
         // when & then
-        assertThrows(IllegalStateException::class.java) {
+        assertThrows(BusinessException::class.java) {
             auction.placeBid(1L, 2000L)
         }
     }
@@ -64,11 +67,12 @@ class AuctionTest {
         // given
         val auction = createAuction(endTime = LocalDateTime.now().minusMinutes(1))
 
-        // ONGOING 상태지만 시간은 지남
+        // PENDING -> APPROVED -> ONGOING (상태는 ONGOING이지만 시간은 지남)
+        auction.approve()
         auction.startAuction()
 
         // when & then
-        assertThrows(IllegalStateException::class.java) {
+        assertThrows(BusinessException::class.java) {
             auction.placeBid(1L, 2000L)
         }
     }
@@ -78,11 +82,12 @@ class AuctionTest {
         startTime: LocalDateTime = LocalDateTime.now().minusHours(1),
         endTime: LocalDateTime = LocalDateTime.now().plusHours(1)
     ): Auction {
-        val auction = Auction(
+        val auction = Auction.create(
             title = "Test Auction",
             startPrice = startPrice,
             startTime = startTime,
-            endTime = endTime
+            endTime = endTime,
+            sellerId = 9999L
         )
         
         val idField = Auction::class.java.getDeclaredField("id")
@@ -92,4 +97,3 @@ class AuctionTest {
         return auction
     }
 }
-

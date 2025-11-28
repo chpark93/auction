@@ -32,13 +32,17 @@ class AuctionRedisAdapter(
         String::class.java
     )
 
+    companion object {
+        private const val AUCTION_LUA_PREFIX = "auction"
+    }
+
     override fun tryBid(
         auctionId: Long,
         userId: Long,
         amount: BigDecimal,
         requestTime: Long
     ): BidResult {
-        val key = "auction:$auctionId"
+        val key = "$AUCTION_LUA_PREFIX:$auctionId"
 
         val result = executeLuaScript(
             key = key,
@@ -131,7 +135,7 @@ class AuctionRedisAdapter(
             throw BusinessException(ErrorCode.AUCTION_NOT_FOUND)
         }
 
-        val key = "auction:$auctionId"
+        val key = "$AUCTION_LUA_PREFIX:$auctionId"
         val endTimeMillis = auction.endTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
         val map = mapOf(
@@ -149,7 +153,7 @@ class AuctionRedisAdapter(
     override fun getAuctionRedisInfo(
         auctionId: Long
     ): AuctionRedisInfo? {
-        val key = "auction:$auctionId"
+        val key = "$AUCTION_LUA_PREFIX:$auctionId"
         val entries = redisTemplate.opsForHash<String, String>().entries(key)
         if (entries.isEmpty()) return null
 
@@ -165,7 +169,7 @@ class AuctionRedisAdapter(
     override fun deleteAuctionRedisInfo(
         auctionId: Long
     ) {
-        val key = "auction:$auctionId"
+        val key = "$AUCTION_LUA_PREFIX:$auctionId"
         redisTemplate.delete(key)
     }
 
@@ -173,7 +177,7 @@ class AuctionRedisAdapter(
         auctionId: Long,
         seconds: Long
     ) {
-        val key = "auction:$auctionId"
+        val key = "$AUCTION_LUA_PREFIX:$auctionId"
         redisTemplate.expire(key, Duration.ofSeconds(seconds))
     }
 }

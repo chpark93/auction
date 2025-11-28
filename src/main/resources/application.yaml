@@ -43,3 +43,8 @@ logging:
     com.ch.auction: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId}] %-5level %logger{36} - %msg%n"
+
+jwt:
+  secret: "VlwEyVBsYt9V7zq57TejMnVUyzblYcfIQzoiSzzcu7FGHx8y"
+  access-token-ttl: 1800000 # 30분
+  refresh-token-ttl: 604800000 # 7일

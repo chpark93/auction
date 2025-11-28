@@ -18,7 +18,7 @@ class SellerAuctionService(
         sellerId: Long,
         request: AuctionCreateRequest
     ): Long {
-        val auction = Auction(
+        val auction = Auction.create(
             title = request.title,
             startPrice = request.startPrice,
             startTime = request.startTime,

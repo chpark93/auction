@@ -18,6 +18,7 @@ class LoggingInterceptor : HandlerInterceptor {
         handler: Any
     ): Boolean {
         logger.info("[REQUEST] {} {}", request.method, request.requestURI)
+
         return true
     }
 

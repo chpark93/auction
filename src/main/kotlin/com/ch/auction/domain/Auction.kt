@@ -9,39 +9,29 @@ import java.time.LocalDateTime
 @Entity
 @Table(name = "auctions")
 @SQLRestriction("deleted = false")
-class Auction(
-    title: String,
-    startPrice: Long,
-    startTime: LocalDateTime,
-    endTime: LocalDateTime,
-    sellerId: Long,
+class Auction private constructor(
+    @Column(nullable = false)
+    var title: String,
+
+    @Column(nullable = false)
+    var startPrice: Long,
+
+    @Column(nullable = false)
+    var startTime: LocalDateTime,
+
+    @Column(nullable = false)
+    var endTime: LocalDateTime,
+
+    @Column(nullable = false)
+    val sellerId: Long,
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null
 ) {
     @Column(nullable = false)
-    var title: String = title
-        private set
-
-    @Column(nullable = false)
-    var startPrice: Long = startPrice
-        private set
-
-    @Column(nullable = false)
-    var startTime: LocalDateTime = startTime
-        private set
-
-    @Column(nullable = false)
-    var endTime: LocalDateTime = endTime
-        private set
-
-    @Column(nullable = false)
     var currentPrice: Long = startPrice
         private set
-
-    @Column(nullable = false)
-    val sellerId: Long = sellerId
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -51,6 +41,24 @@ class Auction(
     @Column(nullable = false)
     var deleted: Boolean = false
         private set
+
+    companion object {
+        fun create(
+            title: String,
+            startPrice: Long,
+            startTime: LocalDateTime,
+            endTime: LocalDateTime,
+            sellerId: Long
+        ): Auction {
+            return Auction(
+                title = title,
+                startPrice = startPrice,
+                startTime = startTime,
+                endTime = endTime,
+                sellerId = sellerId
+            )
+        }
+    }
 
     /**
      * 입찰
@@ -76,7 +84,8 @@ class Auction(
 
         this.currentPrice = amount
 
-        return Bid(
+        // Bid 생성
+        return Bid.create(
             auctionId = this.id ?: throw BusinessException(ErrorCode.AUCTION_ID_MUST_NOT_NULL),
             userId = userId,
             amount = amount,
@@ -91,9 +100,7 @@ class Auction(
         startTime: LocalDateTime,
         endTime: LocalDateTime
     ) {
-        // PENDING 상태일 때만 수정 가능하도록 변경하거나, READY/APPROVED도 허용할지 결정
-        // 여기서는 PENDING, READY, APPROVED 모두 시작 전이므로 허용
-        if (this.status != AuctionStatus.PENDING && 
+        if (this.status != AuctionStatus.PENDING &&
             this.status != AuctionStatus.READY && 
             this.status != AuctionStatus.APPROVED) {
             throw BusinessException(ErrorCode.AUCTION_ALREADY_STARTED)
@@ -129,7 +136,7 @@ class Auction(
     }
 
     /**
-     * 낙찰 완료
+     * 낙찰
      * ENDED -> COMPLETED
      */
     fun completeAuction() {

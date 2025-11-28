@@ -18,8 +18,16 @@ class SellerAuctionController(
         @RequestHeader("X-User-Id") sellerId: Long,
         @RequestBody request: AuctionCreateRequest
     ): ResponseEntity<ApiResponse<Long>> {
-        val auctionId = sellerAuctionService.createAuction(sellerId, request)
-        return ResponseEntity.ok(ApiResponse.ok(auctionId))
+        val auctionId = sellerAuctionService.createAuction(
+            sellerId = sellerId,
+            request = request
+        )
+
+        return ResponseEntity.ok(
+            ApiResponse.ok(
+                data = auctionId
+            )
+        )
     }
     
     @DeleteMapping("/{id}")
@@ -28,8 +36,14 @@ class SellerAuctionController(
         @RequestHeader("X-User-Id") sellerId: Long,
         @PathVariable id: Long
     ): ResponseEntity<ApiResponse<Unit>> {
-        sellerAuctionService.deleteAuction(sellerId, id)
-        return ResponseEntity.ok(ApiResponse.ok())
+        sellerAuctionService.deleteAuction(
+            sellerId = sellerId,
+            auctionId = id
+        )
+
+        return ResponseEntity.ok(
+            ApiResponse.ok()
+        )
     }
 }
 

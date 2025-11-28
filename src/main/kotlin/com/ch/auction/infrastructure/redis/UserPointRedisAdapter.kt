@@ -10,19 +10,25 @@ class UserPointRedisAdapter(
     private val redisTemplate: StringRedisTemplate
 ) : UserPointRepository {
 
+    companion object {
+        private const val USER_POINT_PREFIX = "user"
+        private const val POINT_KEY = "point"
+        private const val LOCKED_POINT = "locked_point"
+    }
+
     override fun chargePoint(
         userId: Long,
         amount: Long
     ): Long {
-        val key = "user:$userId:point"
+        val key = "$USER_POINT_PREFIX:$userId:$POINT_KEY"
         return redisTemplate.opsForValue().increment(key, amount) ?: 0L
     }
 
     override fun getPoint(
         userId: Long
     ): UserPointInfo {
-        val pointKey = "user:$userId:point"
-        val lockedPointKey = "user:$userId:locked_point"
+        val pointKey = "$USER_POINT_PREFIX:$userId:$POINT_KEY"
+        val lockedPointKey = "$USER_POINT_PREFIX:$userId:$LOCKED_POINT"
         
         val totalPointFromRedis = redisTemplate.opsForValue().get(pointKey)
         val lockedPointFromRedis = redisTemplate.opsForValue().get(lockedPointKey)
