@@ -23,8 +23,25 @@ class User private constructor(
     @Column(nullable = false)
     var role: UserRole,
 
+    // TODO: 동시성 관리 필요
+    // point 전용 도메인 생성해도 될 듯?
     @Column(nullable = false)
     var point: BigDecimal,
+
+    @Column
+    var name: String? = null,
+
+    @Column
+    var phoneNumber: String? = null,
+
+    @Column(nullable = false)
+    var isVerified: Boolean = false,
+
+    @Column(unique = true)
+    var ci: String? = null,
+
+    @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
+    val addresses: MutableList<Address> = mutableListOf(),
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -45,7 +62,11 @@ class User private constructor(
                 password = passwordEncoder.encode(password),
                 nickname = nickname,
                 role = role,
-                point = point
+                point = point,
+                name = null,
+                phoneNumber = null,
+                isVerified = false,
+                ci = null
             )
         }
     }
@@ -77,5 +98,30 @@ class User private constructor(
             throw BusinessException(ErrorCode.POINT_NOT_ENOUGH)
         }
         this.point = this.point.subtract(amount)
+    }
+
+    fun addAddress(
+        address: Address
+    ) {
+        if (address.isDefault) {
+            this.addresses.forEach { it.unsetDefault() }
+        } else {
+            if (this.addresses.isEmpty()) {
+                address.setAsDefault()
+            }
+        }
+
+        this.addresses.add(address)
+    }
+
+    fun verifyIdentity(
+        name: String,
+        phoneNumber: String,
+        ci: String
+    ) {
+        this.name = name
+        this.phoneNumber = phoneNumber
+        this.ci = ci
+        this.isVerified = true
     }
 }

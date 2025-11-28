@@ -6,6 +6,11 @@ interface UserPointRepository {
         amount: Long
     ): Long
 
+    fun usePoint(
+        userId: Long,
+        amount: Long
+    )
+
     fun getPoint(
         userId: Long
     ): UserPointInfo
@@ -18,4 +23,3 @@ data class UserPointInfo(
     val availablePoint: Long
         get() = totalPoint - lockedPoint
 }
-

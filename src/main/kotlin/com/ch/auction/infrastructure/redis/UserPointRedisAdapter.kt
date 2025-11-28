@@ -24,6 +24,17 @@ class UserPointRedisAdapter(
         return redisTemplate.opsForValue().increment(key, amount) ?: 0L
     }
 
+    override fun usePoint(
+        userId: Long,
+        amount: Long
+    ) {
+        val pointKey = "$USER_POINT_PREFIX:$userId:$POINT_KEY"
+        val lockedPointKey = "$USER_POINT_PREFIX:$userId:$LOCKED_POINT"
+
+        redisTemplate.opsForValue().decrement(pointKey, amount)
+        redisTemplate.opsForValue().decrement(lockedPointKey, amount)
+    }
+
     override fun getPoint(
         userId: Long
     ): UserPointInfo {
@@ -42,4 +53,3 @@ class UserPointRedisAdapter(
         )
     }
 }
-

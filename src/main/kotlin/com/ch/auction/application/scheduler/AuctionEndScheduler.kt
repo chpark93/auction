@@ -1,5 +1,6 @@
 package com.ch.auction.application.scheduler
 
+import com.ch.auction.application.service.PaymentService
 import com.ch.auction.domain.AuctionStatus
 import com.ch.auction.domain.repository.AuctionRepository
 import com.ch.auction.infrastructure.persistence.AuctionJpaRepository
@@ -15,7 +16,8 @@ import java.time.LocalDateTime
 class AuctionEndScheduler(
     private val auctionJpaRepository: AuctionJpaRepository,
     private val auctionRepository: AuctionRepository,
-    private val messagingTemplate: SimpMessagingTemplate
+    private val messagingTemplate: SimpMessagingTemplate,
+    private val paymentService: PaymentService
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -45,6 +47,18 @@ class AuctionEndScheduler(
 
                 auction.completeAuction()
                 
+                // 정산 (포인트 차감)
+                try {
+                    paymentService.settleAuction(
+                        userId = redisInfo.lastBidderId,
+                        amount = redisInfo.currentPrice.toBigDecimal()
+                    )
+                } catch (e: Exception) {
+                    logger.error("Failed to settle auction {}: {}", auction.id, e.message)
+                    // 실패 처리 (롤백 등 필요)
+                    // 여기서는 로그만 남기고 진행하지만, 실제로는 재시도 혹은 상태 변경 필요
+                }
+
                 val message = mapOf(
                     "type" to AuctionStatus.COMPLETED.name,
                     "auctionId" to auction.id,

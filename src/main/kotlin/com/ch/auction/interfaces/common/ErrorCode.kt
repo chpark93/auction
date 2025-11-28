@@ -26,6 +26,12 @@ enum class ErrorCode(
     EMAIL_DUPLICATED(HttpStatus.BAD_REQUEST, "U001", "Email is already in use"),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "U002", "User not found"),
     PASSWORD_MISMATCH(HttpStatus.UNAUTHORIZED, "U003", "Password mismatch"),
+    ALREADY_VERIFIED_USER(HttpStatus.BAD_REQUEST, "U004", "User is already verified"),
+    DUPLICATE_CI(HttpStatus.BAD_REQUEST, "U005", "User with this CI already exists"),
+
+    // Payment
+    PAYMENT_VERIFICATION_FAILED(HttpStatus.BAD_REQUEST, "M001", "Payment verification failed"),
+    DUPLICATE_PAYMENT(HttpStatus.BAD_REQUEST, "M002", "Duplicate payment"),
 
     // Auction
     PRICE_TOO_LOW(HttpStatus.BAD_REQUEST, "A001", "Bid amount must be higher than current price"),
