@@ -1,12 +1,6 @@
 -- KEYS[1]: auction info hash key
 -- ARGV[1]: amount, ARGV[2]: userId, ARGV[3]: requestTime
 
-local function get_increment(price)
-    if price < 1000000 then return 10000
-    elseif price < 5000000 then return 20000
-    else return 50000 end
-end
-
 local key = KEYS[1]
 local info = redis.call('HMGET', key, 'currentPrice', 'endTime', 'lastBidderId', 'sellerId')
 
@@ -21,14 +15,13 @@ local newAmount = tonumber(ARGV[1])
 local userId = ARGV[2]
 local requestTime = tonumber(ARGV[3])
 
--- [검증 로직]
 if endTime < requestTime then return "-2" end -- Ended
 if sellerId == userId then return "-3" end -- Self Bidding
 if lastBidderId == userId then return "-3" end -- Consecutive Bidding
 
-if currentPrice > 0 then
-    local requiredIncrement = get_increment(currentPrice)
-    if newAmount < (currentPrice + requiredIncrement) then return "0" end -- Too Low
+-- 가격 체크
+if currentPrice > 0 and newAmount <= currentPrice then 
+    return "0" -- Too Low
 end
 
 -- 포인트 검증
@@ -40,7 +33,6 @@ local requiredPoint = newAmount
 
 if (totalPoint - lockedPoint) < requiredPoint then return "-4" end -- Not Enough Point
 
--- [입찰 처리]
 -- 기존 입찰자 환불
 if lastBidderId and lastBidderId ~= userId then
     redis.call('DECRBY', "user:" .. lastBidderId .. ":locked_point", currentPrice)
