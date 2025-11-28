@@ -15,13 +15,13 @@ class TestDataInitializer(
     private val auctionRepository: AuctionRepository
 ) : ApplicationRunner {
 
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     override fun run(
         args: ApplicationArguments?
     ) {
         if (auctionJpaRepository.count() == 0L) {
-            log.info("Initializing test data...")
+            logger.info("Initializing test data...")
             
             val auction = Auction(
                 title = "Test Auction Item",
@@ -36,8 +36,8 @@ class TestDataInitializer(
             auctionRepository.loadAuctionToRedis(
                 auctionId = savedAuction.id!!
             )
-            
-            log.info("Test Auction created: ID=${savedAuction.id}, Price=${savedAuction.startPrice}")
+
+            logger.info("Test Auction created: ID=${savedAuction.id}, Price=${savedAuction.startPrice}")
         }
     }
 }

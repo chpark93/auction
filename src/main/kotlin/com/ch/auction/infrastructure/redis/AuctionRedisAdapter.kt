@@ -49,28 +49,35 @@ class AuctionRedisAdapter(
             requestTime.toString()
         )
 
-        val resultCode = result?.toLongOrNull()
-            ?: throw BusinessException(ErrorCode.UNEXPECTED_STATE_LUA_SCRIPT)
+        return when (result) {
+            "0" -> BidResult.PriceTooLow
+            "-1" -> BidResult.AuctionNotFound
+            "-2" -> BidResult.AuctionEnded
+            else -> {
+                val parts = result.split(":")
+                if (parts.size != 2) {
+                    throw BusinessException(ErrorCode.UNEXPECTED_STATE_LUA_SCRIPT)
+                }
 
-        return when {
-            resultCode > 0 -> {
-                // 성공: resultCode는 Redis 타임스탬프
+                val timestamp = parts[0].toLong()
+                val sequence = parts[1].toLong()
+
                 eventPublisher.publishEvent(
                     BidSuccessEvent(
                         auctionId = auctionId,
                         userId = userId,
                         amount = amount,
-                        bidTime = java.time.Instant.ofEpochMilli(resultCode)
+                        bidTime = java.time.Instant.ofEpochMilli(timestamp)
                             .atZone(ZoneId.systemDefault())
-                            .toLocalDateTime()
+                            .toLocalDateTime(),
+                        sequence = sequence
                     )
                 )
-                BidResult.Success(amount)
+
+                BidResult.Success(
+                    newPrice = amount
+                )
             }
-            resultCode == 0L -> BidResult.PriceTooLow
-            resultCode == -1L -> BidResult.AuctionNotFound
-            resultCode == -2L -> BidResult.AuctionEnded
-            else -> throw BusinessException(ErrorCode.UNEXPECTED_STATE_LUA_SCRIPT)
         }
     }
 
@@ -87,10 +94,11 @@ class AuctionRedisAdapter(
 
         val map = mapOf(
             "currentPrice" to auction.currentPrice.toString(),
-            "endTime" to endTimeMillis.toString()
+            "endTime" to endTimeMillis.toString(),
+            "bidSequence" to "0" // 시퀀스 초기화
         )
 
-        // 기존 데이터가 있다면 삭제 후 적재 (초기화 보장)
+        // 기존 데이터가 있다면 삭제 후 적재
         redisTemplate.delete(key)
         redisTemplate.opsForHash<String, String>().putAll(key, map)
     }

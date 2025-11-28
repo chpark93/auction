@@ -32,9 +32,12 @@ end
 redis.call('HSET', KEYS[1], 'currentPrice', newAmount)
 redis.call('HSET', KEYS[1], 'lastBidderId', ARGV[2])
 
+-- 시퀀스 증가 (순서 보장)
+local sequence = redis.call('HINCRBY', KEYS[1], 'bidSequence', 1)
+
 -- Redis 서버 시간 가져오기 (초, 마이크로초)
 local time = redis.call('TIME')
 local timestamp = tonumber(time[1]) * 1000 + math.floor(tonumber(time[2]) / 1000)
 
--- 성공 시 처리된 타임스탬프 반환
-return tostring(timestamp)
+-- 성공 시 "timestamp:sequence" 형식 반환
+return timestamp .. ":" .. sequence

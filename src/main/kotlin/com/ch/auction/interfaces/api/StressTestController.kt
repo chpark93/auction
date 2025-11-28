@@ -16,7 +16,7 @@ class StressTestController(
     private val auctionRepository: AuctionRepository
 ) {
 
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     @PostMapping("/bid")
     fun stressBid(
@@ -24,8 +24,8 @@ class StressTestController(
         @RequestParam userId: Long,
         @RequestParam amount: BigDecimal
     ): String {
-        if (log.isDebugEnabled) {
-            log.info("Handling request on thread: {}", Thread.currentThread())
+        if (logger.isDebugEnabled) {
+            logger.info("Handling request on thread: {}", Thread.currentThread())
         }
 
         val requestTime = Instant.now().toEpochMilli()

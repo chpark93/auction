@@ -7,6 +7,6 @@ data class BidSuccessEvent(
     val auctionId: Long,
     val userId: Long,
     val amount: BigDecimal,
-    val bidTime: LocalDateTime
+    val bidTime: LocalDateTime,
+    val sequence: Long
 )
-
