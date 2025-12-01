@@ -51,20 +51,22 @@ class User private constructor(
     companion object {
         fun create(
             email: String,
-            password: String,
+            rawPassword: String,
+            passwordEncoder: PasswordEncoder,
             nickname: String,
+            name: String,
+            phoneNumber: String,
             role: UserRole = UserRole.ROLE_USER,
-            point: BigDecimal = BigDecimal.ZERO,
-            passwordEncoder: PasswordEncoder
+            point: BigDecimal = BigDecimal.ZERO
         ): User {
             return User(
                 email = email,
-                password = passwordEncoder.encode(password),
+                password = passwordEncoder.encode(rawPassword),
                 nickname = nickname,
                 role = role,
                 point = point,
-                name = null,
-                phoneNumber = null,
+                name = name,
+                phoneNumber = phoneNumber,
                 isVerified = false,
                 ci = null
             )

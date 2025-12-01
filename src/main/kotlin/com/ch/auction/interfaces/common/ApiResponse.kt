@@ -1,9 +1,7 @@
 package com.ch.auction.interfaces.common
 
-import com.fasterxml.jackson.annotation.JsonInclude
 import java.time.LocalDateTime
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
 data class ApiResponse<T>(
     val success: Boolean,
     val data: T? = null,

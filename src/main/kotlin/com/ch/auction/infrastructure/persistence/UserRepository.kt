@@ -12,4 +12,8 @@ interface UserRepository : JpaRepository<User, Long> {
     fun existsByCi(
         ci: String
     ): Boolean
+
+    fun existsByEmail(
+        email: String
+    ): Boolean
 }
