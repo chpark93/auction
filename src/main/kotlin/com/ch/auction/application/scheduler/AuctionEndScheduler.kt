@@ -60,7 +60,7 @@ class AuctionEndScheduler(
                         auctionId = auction.id,
                         buyerId = redisInfo.lastBidderId,
                         sellerId = auction.sellerId,
-                        finalPrice = redisInfo.currentPrice.toBigDecimal()
+                        payment = redisInfo.currentPrice.toBigDecimal()
                     )
 
                 } catch (e: Exception) {
@@ -72,7 +72,7 @@ class AuctionEndScheduler(
                     "type" to AuctionStatus.COMPLETED.name,
                     "auctionId" to auction.id,
                     "winnerId" to redisInfo.lastBidderId,
-                    "finalPrice" to redisInfo.currentPrice
+                    "payment" to redisInfo.currentPrice
                 )
 
                 messagingTemplate.convertAndSend("/topic/auctions/${auction.id}", message)

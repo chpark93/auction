@@ -17,7 +17,7 @@ class OrderService(
         auctionId: Long,
         buyerId: Long,
         sellerId: Long,
-        finalPrice: BigDecimal,
+        payment: BigDecimal,
         // TODO: User의 기본 배송지를 조회 -> 전달
         address: String = "Default Address"
     ): Order {
@@ -25,7 +25,7 @@ class OrderService(
             auctionId = auctionId,
             buyerId = buyerId,
             sellerId = sellerId,
-            finalPrice = finalPrice
+            payment = payment
         )
 
         val delivery = Delivery.create(

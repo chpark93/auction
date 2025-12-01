@@ -44,7 +44,7 @@ class SettlementService(
 
         processSettlement(
             sellerId = order.sellerId,
-            amount = order.finalPrice
+            amount = order.payment
         )
     }
 
@@ -60,7 +60,7 @@ class SettlementService(
         val seller = userRepository.findById(sellerId)
             .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
 
-        // 판매자에게 포인트 지급
+        // 판매자 포인트 지급
         seller.chargePoint(
             amount = settlementAmount
         )

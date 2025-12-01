@@ -17,33 +17,14 @@ export const options = {
 export default function () {
   const auctionId = 1;
   const userId = Math.floor(Math.random() * 1000) + 1;
-  
   const amount = Math.floor(Math.random() * 10000000) + 1000;
 
-  const url = `http://localhost:8081/api/v1/auctions/${auctionId}/bid`;
+  const url = `http://localhost:8081/api/test/bid?auctionId=${auctionId}&userId=${userId}&amount=${amount}`;
   
-  const payload = JSON.stringify({
-    userId: userId,
-    amount: amount
-  });
-
-  const params = {
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  };
-
-  const res = http.post(url, payload, params);
+  const res = http.post(url, null);
 
   check(res, {
-    'is status 200 or 400': (r) => r.status === 200 || r.status === 400,
-    'response check': (r) => {
-        try {
-            const body = JSON.parse(r.body);
-            return body.success === true || (body.success === false && body.error);
-        } catch(e) {
-            return false;
-        }
-    }
+    'is status 200': (r) => r.status === 200,
+    'response check': (r) => r.body === "OK" || r.body === "FAIL"
   });
 }

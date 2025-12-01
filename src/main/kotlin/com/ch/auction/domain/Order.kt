@@ -17,7 +17,7 @@ class Order private constructor(
     val sellerId: Long,
 
     @Column(nullable = false)
-    val finalPrice: BigDecimal,
+    val payment: BigDecimal,
 
     @OneToOne(mappedBy = "order", cascade = [CascadeType.ALL], orphanRemoval = true)
     var delivery: Delivery? = null,
@@ -32,18 +32,20 @@ class Order private constructor(
             auctionId: Long,
             buyerId: Long,
             sellerId: Long,
-            finalPrice: BigDecimal
+            payment: BigDecimal
         ): Order {
             return Order(
                 auctionId = auctionId,
                 buyerId = buyerId,
                 sellerId = sellerId,
-                finalPrice = finalPrice
+                payment = payment
             )
         }
     }
 
-    fun assignDelivery(delivery: Delivery) {
+    fun assignDelivery(
+        delivery: Delivery
+    ) {
         this.delivery = delivery
     }
 }

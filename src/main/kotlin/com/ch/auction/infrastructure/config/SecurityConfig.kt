@@ -49,9 +49,11 @@ class SecurityConfig(
                     "/api/v1/auth/**",
                     "/ws-auction/**",
                     "/api/test/**",
+                    "/api/v1/chat/**",
                     "/h2-console/**",
                     "/favicon.ico",
                     "/index.html",
+                    "/chat.html",
                     "/",
                     "/error"
                 ).permitAll()
