@@ -33,6 +33,10 @@ enum class ErrorCode(
     PAYMENT_VERIFICATION_FAILED(HttpStatus.BAD_REQUEST, "M001", "Payment verification failed"),
     DUPLICATE_PAYMENT(HttpStatus.BAD_REQUEST, "M002", "Duplicate payment"),
 
+    // Order & Delivery
+    ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "O001", "Order not found"),
+    DELIVERY_NOT_FOUND(HttpStatus.NOT_FOUND, "O002", "Delivery not found"),
+
     // Auction
     PRICE_TOO_LOW(HttpStatus.BAD_REQUEST, "A001", "Bid amount must be higher than current price"),
     AUCTION_ENDED(HttpStatus.BAD_REQUEST, "A002", "Auction has already ended"),

@@ -33,6 +33,7 @@ spring:
       port: 6379
 
 server:
+  port: 8081
   tomcat:
     threads:
       max: 200

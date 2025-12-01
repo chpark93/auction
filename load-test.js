@@ -20,7 +20,7 @@ export default function () {
   
   const amount = Math.floor(Math.random() * 10000000) + 1000;
 
-  const url = `http://localhost:8080/api/v1/auctions/${auctionId}/bid`;
+  const url = `http://localhost:8081/api/v1/auctions/${auctionId}/bid`;
   
   const payload = JSON.stringify({
     userId: userId,
