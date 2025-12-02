@@ -1,0 +1,70 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: server-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            # Auth Service (Public)
+            - id: service-user-public
+              uri: lb://SERVICE-USER
+              predicates:
+                - Path=/api/v1/auth/**
+            # User Service
+            - id: service-user
+              uri: lb://SERVICE-USER
+              predicates:
+                - Path=/api/v1/users/**
+              filters:
+                - AuthorizationHeaderFilter
+            # Auction Service
+            - id: service-auction
+              uri: lb://SERVICE-AUCTION
+              predicates:
+                - Path=/api/v1/auctions/**
+              filters:
+                - AuthorizationHeaderFilter
+            # Auction WebSocket
+            - id: service-auction-ws
+              uri: lb://SERVICE-AUCTION
+              predicates:
+                - Path=/ws-auction/**
+            # Payment Service
+            - id: service-payment
+              uri: lb://SERVICE-PAYMENT
+              predicates:
+                - Path=/api/v1/payments/**
+              filters:
+                - AuthorizationHeaderFilter
+            # Search Service
+            - id: service-search
+              uri: lb://SERVICE-SEARCH
+              predicates:
+                - Path=/api/v1/search/**
+            # Chat Service
+            - id: service-chat-api
+              uri: lb://SERVICE-CHAT
+              predicates:
+                - Path=/api/v1/chat/**
+              filters:
+                - AuthorizationHeaderFilter
+            # Chat WebSocket
+            - id: service-chat-ws
+              uri: lb://SERVICE-CHAT
+              predicates:
+                - Path=/ws-chat/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+jwt:
+  secret: c2VjcmV0LWtleS1mb3ItYXVjdGlvbi1wcm9qZWN0LXRlc3QtMTIzNDU2Nzg5MA==
+  issuer: auction-service
+  access-token-ttl: 1800000
+  refresh-token-ttl: 604800000
