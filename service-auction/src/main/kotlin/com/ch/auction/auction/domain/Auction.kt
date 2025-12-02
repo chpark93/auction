@@ -1,7 +1,8 @@
 package com.ch.auction.auction.domain
 
-import com.ch.auction.exception.BusinessException
+import com.ch.auction.common.BaseEntity
 import com.ch.auction.common.ErrorCode
+import com.ch.auction.exception.BusinessException
 import jakarta.persistence.*
 import org.hibernate.annotations.SQLRestriction
 import java.time.LocalDateTime
@@ -28,7 +29,8 @@ class Auction private constructor(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null
-) {
+) : BaseEntity() {
+
     @Column(nullable = false)
     var currentPrice: Long = startPrice
         private set
