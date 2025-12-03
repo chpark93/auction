@@ -4,6 +4,8 @@ import com.ch.auction.auction.domain.AuctionRepository
 import com.ch.auction.auction.domain.AuctionStatus
 import com.ch.auction.auction.infrastructure.persistence.AuctionJpaRepository
 import com.ch.auction.common.event.AuctionEndedEvent
+import com.ch.auction.common.event.NotificationEvent
+import com.ch.auction.common.event.NotificationType
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.core.KafkaTemplate
@@ -58,6 +60,22 @@ class AuctionEndScheduler(
                 )
                 kafkaTemplate.send("auction-ended", event)
 
+                // 알림 이벤트 발행 (낙찰자)
+                kafkaTemplate.send("notification-send", NotificationEvent(
+                    userId = redisInfo.lastBidderId,
+                    message = "경매 '${auction.title}' 낙찰에 성공했습니다!",
+                    type = NotificationType.BID_SUCCESS,
+                    relatedId = auction.id
+                ))
+                
+                // 알림 이벤트 발행 (판매자)
+                kafkaTemplate.send("notification-send", NotificationEvent(
+                    userId = auction.sellerId,
+                    message = "경매 '${auction.title}'가 낙찰되었습니다.",
+                    type = NotificationType.AUCTION_ENDED,
+                    relatedId = auction.id
+                ))
+
                 val message = mapOf(
                     "type" to AuctionStatus.COMPLETED.name,
                     "auctionId" to auction.id,
@@ -80,6 +98,14 @@ class AuctionEndScheduler(
                     endedAt = LocalDateTime.now()
                 )
                 kafkaTemplate.send("auction-ended", event)
+                
+                // 알림 이벤트 발행 (판매자에게 유찰 알림)
+                kafkaTemplate.send("notification-send", NotificationEvent(
+                    userId = auction.sellerId,
+                    message = "경매 '${auction.title}'가 유찰되었습니다.",
+                    type = NotificationType.AUCTION_FAILED,
+                    relatedId = auction.id
+                ))
 
                 val message = mapOf(
                     "type" to AuctionStatus.FAILED.name,

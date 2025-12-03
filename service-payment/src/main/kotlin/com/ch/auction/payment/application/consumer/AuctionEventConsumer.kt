@@ -15,7 +15,10 @@ class AuctionEventConsumer(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    @KafkaListener(topics = ["auction-ended"], groupId = "payment-group")
+    @KafkaListener(
+        topics = ["auction-ended"],
+        groupId = "payment-group"
+    )
     fun handleAuctionEnded(
         event: AuctionEndedEvent
     ) {
