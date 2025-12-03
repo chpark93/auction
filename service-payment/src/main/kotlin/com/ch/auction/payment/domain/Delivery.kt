@@ -7,6 +7,11 @@ import java.time.LocalDateTime
 @Entity
 @Table(name = "deliveries")
 class Delivery private constructor(
+    courierCompany: String? = null,
+    trackingNumber: String? = null,
+    status: DeliveryStatus = DeliveryStatus.PREPARING,
+    deliveredAt: LocalDateTime? = null,
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     val order: Order,
@@ -14,23 +19,27 @@ class Delivery private constructor(
     @Column(nullable = false)
     val address: String,
 
-    @Column
-    var courierCompany: String? = null,
-
-    @Column
-    var trackingNumber: String? = null,
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    var status: DeliveryStatus = DeliveryStatus.PREPARING,
-
-    @Column
-    var deliveredAt: LocalDateTime? = null,
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null
 ) : BaseEntity() {
+
+    @Column
+    var courierCompany: String? = courierCompany
+        private set
+
+    @Column
+    var trackingNumber: String? = trackingNumber
+        private set
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    var status: DeliveryStatus = status
+        private set
+
+    @Column
+    var deliveredAt: LocalDateTime? = deliveredAt
+        private set
 
     companion object {
         fun create(

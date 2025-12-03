@@ -6,6 +6,8 @@ import jakarta.persistence.*
 @Entity
 @Table(name = "payments")
 class Payment private constructor(
+    status: PaymentStatus,
+
     @Column(nullable = false)
     val userId: Long,
 
@@ -15,10 +17,6 @@ class Payment private constructor(
     @Column(nullable = false)
     val amount: Long,
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    var status: PaymentStatus,
-
     @OneToMany(mappedBy = "payment", cascade = [CascadeType.ALL], orphanRemoval = true)
     val transactions: MutableList<PaymentTransaction> = mutableListOf(),
 
@@ -26,6 +24,11 @@ class Payment private constructor(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null
 ) : BaseEntity() {
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    var status: PaymentStatus = status
+        private set
 
     companion object {
         fun create(

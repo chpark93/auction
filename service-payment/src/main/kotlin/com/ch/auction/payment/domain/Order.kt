@@ -6,6 +6,8 @@ import jakarta.persistence.*
 @Entity
 @Table(name = "orders")
 class Order private constructor(
+    delivery: Delivery? = null,
+
     @Column(nullable = false)
     val auctionId: Long,
 
@@ -18,13 +20,14 @@ class Order private constructor(
     @Column(nullable = false)
     val payment: Long,
 
-    @OneToOne(mappedBy = "order", cascade = [CascadeType.ALL], orphanRemoval = true)
-    var delivery: Delivery? = null,
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null
 ) : BaseEntity() {
+
+    @OneToOne(mappedBy = "order", cascade = [CascadeType.ALL], orphanRemoval = true)
+    var delivery: Delivery? = delivery
+        private set
     
     companion object {
         fun create(
@@ -48,4 +51,3 @@ class Order private constructor(
         this.delivery = delivery
     }
 }
-

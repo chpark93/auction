@@ -11,18 +11,11 @@ import java.time.LocalDateTime
 @Table(name = "auctions")
 @SQLRestriction("deleted = false")
 class Auction private constructor(
-    @Column(nullable = false)
-    var title: String,
-
-    @Column(nullable = false)
-    var startPrice: Long,
-
-    @Column(nullable = false)
-    var startTime: LocalDateTime,
-
-    @Column(nullable = false)
-    var endTime: LocalDateTime,
-
+    title: String,
+    startPrice: Long,
+    startTime: LocalDateTime,
+    endTime: LocalDateTime,
+    
     @Column(nullable = false)
     val sellerId: Long,
 
@@ -30,6 +23,22 @@ class Auction private constructor(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null
 ) : BaseEntity() {
+
+    @Column(nullable = false)
+    var title: String = title
+        private set
+
+    @Column(nullable = false)
+    var startPrice: Long = startPrice
+        private set
+
+    @Column(nullable = false)
+    var startTime: LocalDateTime = startTime
+        private set
+
+    @Column(nullable = false)
+    var endTime: LocalDateTime = endTime
+        private set
 
     @Column(nullable = false)
     var currentPrice: Long = startPrice

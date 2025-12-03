@@ -1,6 +1,7 @@
 package com.ch.auction.auction.interfaces.api
 
 import com.ch.auction.auction.application.service.AuctionService
+import com.ch.auction.auction.interfaces.api.dto.AuctionResponse
 import com.ch.auction.auction.interfaces.api.dto.BidRequest
 import com.ch.auction.auction.interfaces.api.dto.BidResponse
 import com.ch.auction.common.ApiResponse
@@ -44,6 +45,21 @@ class AuctionController(
         return ResponseEntity.ok(
             ApiResponse.ok(
                 data = currentPrice
+            )
+        )
+    }
+
+    @GetMapping("/{id}")
+    fun getAuction(
+        @PathVariable id: Long
+    ): ResponseEntity<ApiResponse<AuctionResponse>> {
+        val response = auctionService.getAuction(
+            auctionId = id
+        )
+
+        return ResponseEntity.ok(
+            ApiResponse.ok(
+                data = response
             )
         )
     }
