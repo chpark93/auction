@@ -7,6 +7,7 @@ import com.ch.auction.search.infrastructure.persistence.AuctionSearchRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations
+import org.springframework.data.elasticsearch.core.document.Document
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates
 import org.springframework.data.elasticsearch.core.query.ScriptType
 import org.springframework.data.elasticsearch.core.query.UpdateQuery
@@ -116,7 +117,7 @@ class AuctionSyncConsumer(
             val status = if (event.winnerId != null) "COMPLETED" else "FAILED"
             
             val updateQuery = UpdateQuery.builder(event.auctionId.toString())
-                .withDocument(org.springframework.data.elasticsearch.core.document.Document.create().apply {
+                .withDocument(Document.create().apply {
                     put("status", status)
                     put("currentPrice", event.finalPrice)
                 })
