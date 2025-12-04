@@ -16,5 +16,8 @@ dependencies {
     implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.10.2")
 
     runtimeOnly("com.mysql:mysql-connector-j")
-    runtimeOnly("com.h2database:h2") // 추가됨
+    runtimeOnly("com.h2database:h2")
+
+    testImplementation("io.mockk:mockk:1.13.10")
+    testImplementation("com.ninja-squad:springmockk:4.0.2")
 }

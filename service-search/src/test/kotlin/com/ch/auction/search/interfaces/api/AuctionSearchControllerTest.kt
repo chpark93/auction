@@ -31,7 +31,7 @@ class AuctionSearchControllerTest {
 
     @Test
     fun search_auctions_results() {
-        // Given
+        // given
         val document = AuctionDocument(
             id = "1",
             title = "Test Item",
@@ -51,7 +51,7 @@ class AuctionSearchControllerTest {
             auctionSearchService.search(any<AuctionSearchCondition>(), any<Pageable>()) 
         } returns page
 
-        // When & Then
+        // when & then
         mockMvc.perform(
             get("/api/v1/search/auctions")
                 .param("keyword", "test")

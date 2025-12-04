@@ -12,4 +12,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     
     implementation("org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j")
+
+    testImplementation("io.mockk:mockk:1.13.10")
+    testImplementation("com.ninja-squad:springmockk:4.0.2")
 }
