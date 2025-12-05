@@ -14,4 +14,6 @@ dependencies {
     
     runtimeOnly("com.mysql:mysql-connector-j")
     runtimeOnly("com.h2database:h2")
+    
+    testImplementation("io.mockk:mockk:1.13.10")
 }

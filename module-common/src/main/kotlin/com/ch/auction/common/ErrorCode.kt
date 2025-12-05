@@ -60,7 +60,13 @@ enum class ErrorCode(
     DUPLICATE_CI(HttpStatus.BAD_REQUEST, "CI is already in use"),
 
     // Order
-    ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "Order not found")
+    ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "Order not found"),
+    DELIVERY_NOT_FOUND(HttpStatus.NOT_FOUND, "Delivery not found"),
+
+    // Payment
+    DUPLICATE_PAYMENT(HttpStatus.CONFLICT, "Duplicate payment"),
+    PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Payment not found"),
+    PAYMENT_VERIFICATION_FAILED(HttpStatus.BAD_REQUEST, "Payment verification failed")
     ;
 
     val code: String

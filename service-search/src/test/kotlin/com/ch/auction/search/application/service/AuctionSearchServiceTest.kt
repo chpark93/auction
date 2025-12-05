@@ -32,7 +32,7 @@ class AuctionSearchServiceTest {
     @Test
     @DisplayName("키워드로 검색 - title에 키워드가 포함된 경매를 반환")
     fun search_with_keyword_in_title() {
- // given
+        // given
         val keyword = "테스트"
         val condition = AuctionSearchCondition(keyword = keyword)
         val pageable = PageRequest.of(0, 10)
@@ -133,7 +133,7 @@ class AuctionSearchServiceTest {
     @Test
     @DisplayName("카테고리로 필터링 - 특정 카테고리의 경매만 반환")
     fun search_with_category_filter() {
- // given
+        // given
         val category = "전자제품"
         val condition = AuctionSearchCondition(category = category)
         val pageable = PageRequest.of(0, 10)
@@ -164,10 +164,10 @@ class AuctionSearchServiceTest {
 
         every { elasticsearchOperations.search(any<CriteriaQuery>(), AuctionDocument::class.java) } returns searchHits
 
- // when
+        // when
         val result = auctionSearchService.search(condition, pageable)
 
- // then
+        // then
         assertEquals(1, result.totalElements)
         assertEquals(category, result.content[0].category)
 
@@ -177,7 +177,7 @@ class AuctionSearchServiceTest {
     @Test
     @DisplayName("가격 범위로 필터링 - minPrice와 maxPrice 사이의 경매만 반환")
     fun search_with_price_range_filter() {
- // given
+        // given
         val condition = AuctionSearchCondition(
             minPrice = 10000L,
             maxPrice = 50000L
@@ -209,10 +209,10 @@ class AuctionSearchServiceTest {
 
         every { elasticsearchOperations.search(any<CriteriaQuery>(), AuctionDocument::class.java) } returns searchHits
 
- // when
+        // when
         val result = auctionSearchService.search(condition, pageable)
 
- // then
+        // then
         assertEquals(1, result.totalElements)
         assertTrue(result.content[0].currentPrice >= 10000L)
         assertTrue(result.content[0].currentPrice <= 50000L)
@@ -223,7 +223,7 @@ class AuctionSearchServiceTest {
     @Test
     @DisplayName("상태로 필터링 - 특정 상태의 경매만 반환")
     fun search_with_status_filter() {
- // given
+        // given
         val status = "ONGOING"
         val condition = AuctionSearchCondition(status = status)
         val pageable = PageRequest.of(0, 10)
@@ -254,10 +254,10 @@ class AuctionSearchServiceTest {
 
         every { elasticsearchOperations.search(any<CriteriaQuery>(), AuctionDocument::class.java) } returns searchHits
 
- // when
+        // when
         val result = auctionSearchService.search(condition, pageable)
 
- // then
+        // then
         assertEquals(1, result.totalElements)
         assertEquals(status, result.content[0].status)
 
@@ -267,7 +267,7 @@ class AuctionSearchServiceTest {
     @Test
     @DisplayName("복합 조건 검색 - 키워드, 카테고리, 가격 범위, 상태를 모두 적용")
     fun search_with_multiple_conditions() {
- // given
+        // given
         val condition = AuctionSearchCondition(
             keyword = "노트북",
             category = "전자제품",
@@ -306,10 +306,10 @@ class AuctionSearchServiceTest {
 
         every { elasticsearchOperations.search(any<CriteriaQuery>(), AuctionDocument::class.java) } returns searchHits
 
- // when
+        // when
         val result = auctionSearchService.search(condition, pageable)
 
- // then
+        // then
         assertEquals(1, result.totalElements)
         val resultDocument = result.content[0]
         assertTrue(resultDocument.title.contains("노트북"))
@@ -324,7 +324,7 @@ class AuctionSearchServiceTest {
     @Test
     @DisplayName("검색 결과 없음 - 조건에 맞는 경매가 없을 때 빈 페이지 반환")
     fun search_no_results() {
- // given
+        // given
         val condition = AuctionSearchCondition(keyword = "존재하지않는키워드")
         val pageable = PageRequest.of(0, 10)
 
@@ -343,10 +343,10 @@ class AuctionSearchServiceTest {
 
         every { elasticsearchOperations.search(any<CriteriaQuery>(), AuctionDocument::class.java) } returns searchHits
 
- // when
+        // when
         val result = auctionSearchService.search(condition, pageable)
 
- // then
+        // then
         assertEquals(0, result.totalElements)
         assertTrue(result.content.isEmpty())
 
@@ -356,7 +356,7 @@ class AuctionSearchServiceTest {
     @Test
     @DisplayName("하이라이트 적용 - 키워드가 있을 때 제목과 판매자명에 하이라이트 태그 포함")
     fun search_with_highlight() {
- // given
+        // given
         val keyword = "맥북"
         val condition = AuctionSearchCondition(keyword = keyword)
         val pageable = PageRequest.of(0, 10)
@@ -389,10 +389,10 @@ class AuctionSearchServiceTest {
 
         every { elasticsearchOperations.search(any<CriteriaQuery>(), AuctionDocument::class.java) } returns searchHits
 
- // when
+        // when
         val result = auctionSearchService.search(condition, pageable)
 
- // then
+        // then
         assertEquals(1, result.totalElements)
         assertTrue(result.content[0].title.contains("<em>"))
         assertTrue(result.content[0].title.contains("</em>"))
@@ -403,7 +403,7 @@ class AuctionSearchServiceTest {
     @Test
     @DisplayName("페이징 처리 - 지정된 페이지 크기로 결과 반환")
     fun search_with_pagination() {
- // given
+        // given
         val condition = AuctionSearchCondition()
         val pageable = PageRequest.of(0, 5) // 페이지 크기 5
 
@@ -434,10 +434,10 @@ class AuctionSearchServiceTest {
 
         every { elasticsearchOperations.search(any<CriteriaQuery>(), AuctionDocument::class.java) } returns searchHits
 
- // when
+        // when
         val result = auctionSearchService.search(condition, pageable)
 
- // then
+        // then
         assertEquals(10, result.totalElements) // 전체 결과 수
         assertEquals(5, result.content.size) // 현재 페이지 결과 수
         assertEquals(2, result.totalPages) // 총 페이지 수
