@@ -1,13 +1,14 @@
-version: '3.8'
 services:
   mysql:
     image: mysql:8.0
     container_name: auction-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: auction_user
+      MYSQL_ROOT_PASSWORD: 1234
     ports:
       - "3306:3306"
+    volumes:
+      - ./mysql-init:/docker-entrypoint-initdb.d
+      - mysql_data:/var/lib/mysql
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     healthcheck:
       test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
@@ -89,15 +90,18 @@ services:
     build: ./service-user
     container_name: service-user
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/auction_user?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=UTC
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/users?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
       - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_DATASOURCE_PASSWORD=1234
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://server-discovery:8761/eureka/
       - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
     depends_on:
       mysql:
         condition: service_healthy
       redis:
+        condition: service_started
+      kafka:
         condition: service_started
       server-discovery:
         condition: service_started
@@ -106,18 +110,72 @@ services:
     build: ./service-auction
     container_name: service-auction
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/auction_auction?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=UTC
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/auctions?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
       - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_DATASOURCE_PASSWORD=1234
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://server-discovery:8761/eureka/
       - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
     depends_on:
       mysql:
         condition: service_healthy
       redis:
         condition: service_started
+      kafka:
+        condition: service_started
+      server-discovery:
+        condition: service_started
+
+  service-payment:
+    build: ./service-payment
+    container_name: service-payment
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/payments?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://server-discovery:8761/eureka/
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      server-discovery:
+        condition: service_started
+
+  service-search:
+    build: ./service-search
+    container_name: service-search
+    environment:
+      - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://server-discovery:8761/eureka/
+    depends_on:
+      elasticsearch:
+        condition: service_started
+      kafka:
+        condition: service_started
+      server-discovery:
+        condition: service_started
+
+  service-chat:
+    build: ./service-chat
+    container_name: service-chat
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/chat_db
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://server-discovery:8761/eureka/
+      - SPRING_DATA_REDIS_HOST=redis
+    depends_on:
+      mongodb:
+        condition: service_started
+      redis:
+        condition: service_started
+      kafka:
+        condition: service_started
       server-discovery:
         condition: service_started
 
 volumes:
+  mysql_data:
   mongodb_data:

@@ -7,6 +7,8 @@ dependencies {
     
     implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.10")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.mockk:mockk:1.13.10")

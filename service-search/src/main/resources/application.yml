@@ -22,3 +22,18 @@ eureka:
       defaultZone: http://localhost:8761/eureka/
     register-with-eureka: true
     fetch-registry: true
+
+jwt:
+  secret: c2VjcmV0LWtleS1mb3ItYXVjdGlvbi1wcm9qZWN0LXRlc3QtMTIzNDU2Nzg5MA==
+  issuer: auction-service
+  access-token-ttl: 1800000
+  refresh-token-ttl: 604800000
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    tags-sorter: alpha
+    operations-sorter: alpha

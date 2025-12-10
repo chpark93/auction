@@ -9,13 +9,18 @@ import com.ch.auction.auction.interfaces.api.dto.admin.AuctionCreateRequest
 import com.ch.auction.auction.interfaces.api.dto.admin.AuctionUpdateRequest
 import com.ch.auction.common.ErrorCode
 import com.ch.auction.exception.BusinessException
+import com.fasterxml.jackson.databind.ObjectMapper
+import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.format.DateTimeFormatter
 
 @Service
 class AuctionAdminService(
     private val auctionJpaRepository: AuctionJpaRepository,
-    private val auctionRepository: AuctionRepository
+    private val auctionRepository: AuctionRepository,
+    private val kafkaTemplate: KafkaTemplate<String, Any>,
+    private val objectMapper: ObjectMapper
 ) {
 
     @Transactional
@@ -27,10 +32,13 @@ class AuctionAdminService(
             startPrice = request.startPrice,
             startTime = request.startTime,
             endTime = request.endTime,
-            sellerId = 0L // TODO: Admin 생성 시 Seller 지정 로직 필요 시 수정
+            sellerId = 0L // Admin 생성
         )
         
         val savedAuction = auctionJpaRepository.save(auction)
+        
+        // Kafka 이벤트 발행 (Elasticsearch 동기화용)
+        publishAuctionCreateEvent(savedAuction)
         
         return AuctionAdminResponse.from(
             auction = savedAuction
@@ -52,9 +60,40 @@ class AuctionAdminService(
             endTime = request.endTime
         )
 
+        // Kafka 이벤트 발행 (Elasticsearch 동기화용)
+        publishAuctionUpdateEvent(auction)
+
         return AuctionAdminResponse.from(
             auction = auction
         )
+    }
+    
+    private fun publishAuctionCreateEvent(auction: Auction) {
+        val event = mapOf(
+            "id" to auction.id!!,
+            "title" to auction.title,
+            "category" to "관리자등록",
+            "sellerName" to "Admin",
+            "startPrice" to auction.startPrice,
+            "thumbnailUrl" to null,
+            "createdAt" to auction.createdAt.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+            "endTime" to auction.endTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        )
+        
+        val eventJson = objectMapper.writeValueAsString(event)
+        kafkaTemplate.send("auction-create-topic", eventJson)
+    }
+    
+    private fun publishAuctionUpdateEvent(auction: Auction) {
+        val event = mapOf(
+            "id" to auction.id!!,
+            "title" to auction.title,
+            "category" to "관리자등록",
+            "endTime" to auction.endTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        )
+        
+        val eventJson = objectMapper.writeValueAsString(event)
+        kafkaTemplate.send("auction-update-topic", eventJson)
     }
 
     @Transactional

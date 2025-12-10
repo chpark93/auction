@@ -12,7 +12,7 @@ data class AuctionDocument(
     @Id
     val id: String,
 
-    @Field(type = FieldType.Text, analyzer = "nori")
+    @Field(type = FieldType.Text, analyzer = "standard")
     val title: String,
 
     @Field(type = FieldType.Keyword)

@@ -14,6 +14,13 @@ spring:
               uri: lb://SERVICE-USER
               predicates:
                 - Path=/api/v1/auth/**
+            # User Points (in Payment Service)
+            - id: service-payment-points
+              uri: lb://SERVICE-PAYMENT
+              predicates:
+                - Path=/api/v1/users/points/**
+              filters:
+                - AuthorizationHeaderFilter
             # User Service
             - id: service-user
               uri: lb://SERVICE-USER
@@ -21,11 +28,32 @@ spring:
                 - Path=/api/v1/users/**
               filters:
                 - AuthorizationHeaderFilter
-            # Auction Service
-            - id: service-auction
+            # Auction Service (Public - List)
+            - id: service-auction-public
               uri: lb://SERVICE-AUCTION
               predicates:
                 - Path=/api/v1/auctions/**
+                - Method=GET
+            # Auction Service (Seller)
+            - id: service-auction-seller
+              uri: lb://SERVICE-AUCTION
+              predicates:
+                - Path=/api/v1/seller/**
+              filters:
+                - AuthorizationHeaderFilter
+            # Auction Service (Bid)
+            - id: service-auction-bid
+              uri: lb://SERVICE-AUCTION
+              predicates:
+                - Path=/api/v1/auctions/**
+                - Method=POST,PUT,DELETE
+              filters:
+                - AuthorizationHeaderFilter
+            # Auction Admin
+            - id: service-auction-admin
+              uri: lb://SERVICE-AUCTION
+              predicates:
+                - Path=/api/v1/admin/auctions/**
               filters:
                 - AuthorizationHeaderFilter
             # Auction WebSocket
@@ -57,6 +85,37 @@ spring:
               uri: lb://SERVICE-CHAT
               predicates:
                 - Path=/ws-chat/**
+            # Swagger UI Routes for each service
+            - id: service-user-swagger
+              uri: lb://SERVICE-USER
+              predicates:
+                - Path=/service-user/v3/api-docs
+              filters:
+                - RewritePath=/service-user/v3/api-docs, /v3/api-docs
+            - id: service-auction-swagger
+              uri: lb://SERVICE-AUCTION
+              predicates:
+                - Path=/service-auction/v3/api-docs
+              filters:
+                - RewritePath=/service-auction/v3/api-docs, /v3/api-docs
+            - id: service-payment-swagger
+              uri: lb://SERVICE-PAYMENT
+              predicates:
+                - Path=/service-payment/v3/api-docs
+              filters:
+                - RewritePath=/service-payment/v3/api-docs, /v3/api-docs
+            - id: service-search-swagger
+              uri: lb://SERVICE-SEARCH
+              predicates:
+                - Path=/service-search/v3/api-docs
+              filters:
+                - RewritePath=/service-search/v3/api-docs, /v3/api-docs
+            - id: service-chat-swagger
+              uri: lb://SERVICE-CHAT
+              predicates:
+                - Path=/service-chat/v3/api-docs
+              filters:
+                - RewritePath=/service-chat/v3/api-docs, /v3/api-docs
 
 eureka:
   client:
@@ -68,3 +127,21 @@ jwt:
   issuer: auction-service
   access-token-ttl: 1800000
   refresh-token-ttl: 604800000
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    urls:
+      - name: User Service
+        url: /service-user/v3/api-docs
+      - name: Auction Service
+        url: /service-auction/v3/api-docs
+      - name: Payment Service
+        url: /service-payment/v3/api-docs
+      - name: Search Service
+        url: /service-search/v3/api-docs
+      - name: Chat Service
+        url: /service-chat/v3/api-docs

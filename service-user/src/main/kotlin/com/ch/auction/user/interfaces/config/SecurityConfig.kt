@@ -32,7 +32,18 @@ class SecurityConfig(
         http: HttpSecurity
     ): SecurityFilterChain {
         http
-            .csrf { it.disable() }
+            .csrf {
+                it.disable()
+            }
+            .httpBasic {
+                it.disable()
+            }
+            .formLogin {
+                it.disable()
+            }
+            .logout {
+                it.disable()
+            }
             .sessionManagement { sessionManagementConfigurer ->
                 sessionManagementConfigurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             }
@@ -45,6 +56,9 @@ class SecurityConfig(
                     "/api/v1/auth/**",
                     "/api/v1/users/**",
                     "/h2-console/**",
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**",
+                    "/swagger-ui.html",
                     "/favicon.ico",
                     "/index.html",
                     "/",

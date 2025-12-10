@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>경매 상세 - 경매 시스템</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .auction-image {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 100px;
+            border-radius: 15px;
+        }
+        .bid-section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 20px;
+        }
+        .current-price {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .bid-history {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .bid-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .bid-item:last-child {
+            border-bottom: none;
+        }
+        .status-badge {
+            font-size: 1rem;
+            padding: 8px 16px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 네비게이션 -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="index.html">🏆 경매 시스템</a>
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3">
+                    <i class="bi bi-wallet2"></i> 
+                    <span id="userPoint">0</span>원
+                </span>
+                <button class="btn btn-light btn-sm me-2" onclick="location.href='index.html'">
+                    <i class="bi bi-house"></i> 홈
+                </button>
+                <button class="btn btn-warning btn-sm me-2" onclick="location.href='create-auction.html'">
+                    <i class="bi bi-plus-circle"></i> 물품 등록
+                </button>
+                <button class="btn btn-light btn-sm me-2" onclick="location.href='mypage.html'">
+                    <i class="bi bi-person-circle"></i> 마이페이지
+                </button>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()">로그아웃</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <button class="btn btn-outline-secondary mb-3" onclick="history.back()">
+            <i class="bi bi-arrow-left"></i> 목록으로
+        </button>
+
+        <div class="row">
+            <!-- 왼쪽: 경매 정보 -->
+            <div class="col-md-7">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h2 id="auctionTitle">로딩중...</h2>
+                            <span id="auctionStatus" class="badge status-badge">-</span>
+                        </div>
+                        
+                        <div class="auction-image mb-4">
+                            <i class="bi bi-image"></i>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <p class="text-muted mb-1">판매자</p>
+                                <p class="fw-bold" id="sellerName">-</p>
+                            </div>
+                            <div class="col-6">
+                                <p class="text-muted mb-1">시작가</p>
+                                <p class="fw-bold" id="startPrice">-</p>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <p class="text-muted mb-1">시작 시간</p>
+                                <p id="startTime">-</p>
+                            </div>
+                            <div class="col-6">
+                                <p class="text-muted mb-1">종료 시간</p>
+                                <p id="endTime">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 입찰 내역 -->
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-clock-history"></i> 실시간 입찰 현황
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="bid-history" id="bidHistory">
+                            <div class="text-center text-muted p-4">
+                                입찰 내역이 없습니다.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 오른쪽: 입찰 섹션 -->
+            <div class="col-md-5">
+                <div class="bid-section">
+                    <h4 class="mb-3">입찰하기</h4>
+                    
+                    <div class="text-center mb-4">
+                        <p class="text-muted mb-2">현재 입찰가</p>
+                        <div class="current-price" id="currentPrice">-</div>
+                        <small class="text-muted">
+                            <i class="bi bi-people"></i> 
+                            <span id="bidCount">0</span>명 입찰 중
+                        </small>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <small>최소 입찰 단위: 1,000원</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">입찰 금액</label>
+                        <input type="number" class="form-control form-control-lg" 
+                               id="bidAmount" placeholder="입찰 금액 입력" step="1000">
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary btn-lg" id="bidButton" onclick="placeBid()">
+                            <i class="bi bi-gavel"></i> 입찰하기
+                        </button>
+                        <button class="btn btn-outline-secondary" id="chatButton" 
+                                onclick="goToChat()" style="display: none;">
+                            <i class="bi bi-chat-dots"></i> 1:1 채팅하기
+                        </button>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="bi bi-shield-check"></i>
+                            실시간 Redis 기반 포인트 검증
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        // 페이지 로드 시 로그인 체크
+        if (!requireLogin()) {
+            // requireLogin이 false를 반환하면 여기서 중단
+        }
+
+        const auctionId = getQueryParam('id');
+        let stompClient = null;
+        let auctionData = null;
+
+        if (!auctionId) {
+            alert('잘못된 접근입니다.');
+            location.href = 'index.html';
+        }
+
+        // WebSocket 연결
+        function connectWebSocket() {
+            const socket = new SockJS(API_BASE_URL + '/ws-auction');
+            stompClient = Stomp.over(socket);
+            
+            stompClient.connect({}, () => {
+                console.log('WebSocket Connected');
+                
+                // 경매별 실시간 업데이트 구독
+                stompClient.subscribe(`/topic/auctions/${auctionId}`, (message) => {
+                    const data = JSON.parse(message.body);
+                    console.log('Received bid update:', data);
+                    updateCurrentPrice(data.currentPrice);
+                    addBidToHistory(data);
+                });
+            }, (error) => {
+                console.error('WebSocket connection error:', error);
+            });
+        }
+
+        // 경매 상세 정보 로드
+        async function loadAuctionDetail() {
+            try {
+                const response = await AuctionAPI.getDetail(auctionId);
+                
+                if (response.data.success) {
+                    auctionData = response.data.data;
+                    renderAuctionDetail(auctionData);
+                    loadCurrentPrice();
+                    
+                    // 채팅 버튼 활성화 (낙찰자 또는 판매자)
+                    const currentUser = getCurrentUser();
+                    if (auctionData.status === 'COMPLETED' && 
+                        (currentUser.userId === auctionData.sellerId || 
+                         currentUser.userId === auctionData.winnerId)) {
+                        document.getElementById('chatButton').style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load auction detail:', error);
+                alert('경매 정보를 불러오는데 실패했습니다.');
+            }
+        }
+
+        // 현재가 로드
+        async function loadCurrentPrice() {
+            try {
+                const response = await AuctionAPI.getCurrentPrice(auctionId);
+                if (response.data.success) {
+                    const data = response.data.data;
+                    updateCurrentPrice(data.currentPrice);
+                }
+            } catch (error) {
+                console.error('Failed to load current price:', error);
+            }
+        }
+
+        // 경매 정보 렌더링
+        function renderAuctionDetail(auction) {
+            document.getElementById('auctionTitle').textContent = auction.title;
+            document.getElementById('sellerName').textContent = auction.sellerName || '알 수 없음';
+            document.getElementById('startPrice').textContent = formatPrice(auction.startPrice);
+            document.getElementById('startTime').textContent = formatDate(auction.startTime);
+            document.getElementById('endTime').textContent = formatDate(auction.endTime);
+            
+            const statusBadge = getStatusBadge(auction.status);
+            document.getElementById('auctionStatus').textContent = statusBadge.text;
+            document.getElementById('auctionStatus').className = `badge status-badge ${statusBadge.class}`;
+            
+            // 종료된 경매는 입찰 버튼 비활성화
+            if (auction.status !== 'ONGOING') {
+                document.getElementById('bidButton').disabled = true;
+                document.getElementById('bidAmount').disabled = true;
+            }
+        }
+
+        // 현재가 업데이트
+        function updateCurrentPrice(price) {
+            document.getElementById('currentPrice').textContent = formatPrice(price);
+        }
+
+        // 입찰 내역에 추가
+        function addBidToHistory(bidData) {
+            const history = document.getElementById('bidHistory');
+            
+            // 첫 입찰이면 기존 메시지 제거
+            if (history.querySelector('.text-center')) {
+                history.innerHTML = '';
+            }
+            
+            const bidItem = document.createElement('div');
+            bidItem.className = 'bid-item';
+            bidItem.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>${formatPrice(bidData.currentPrice)}</strong>
+                        <br>
+                        <small class="text-muted">입찰자 #${bidData.bidderId}</small>
+                    </div>
+                    <small class="text-muted">${formatDate(new Date())}</small>
+                </div>
+            `;
+            
+            // 최신 입찰이 위로 오도록
+            history.insertBefore(bidItem, history.firstChild);
+            
+            // 입찰 카운트 업데이트
+            const bidCount = parseInt(document.getElementById('bidCount').textContent) + 1;
+            document.getElementById('bidCount').textContent = bidCount;
+        }
+
+        // 입찰하기
+        async function placeBid() {
+            const amount = parseInt(document.getElementById('bidAmount').value);
+            
+            if (!amount || amount <= 0) {
+                alert('입찰 금액을 입력해주세요.');
+                return;
+            }
+            
+            const currentPrice = parseInt(document.getElementById('currentPrice').textContent.replace(/[^0-9]/g, ''));
+            
+            if (amount <= currentPrice) {
+                alert('현재가보다 높은 금액을 입력해주세요.');
+                return;
+            }
+            
+            const bidButton = document.getElementById('bidButton');
+            bidButton.disabled = true;
+            bidButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 입찰 중...';
+            
+            try {
+                const response = await AuctionAPI.placeBid(auctionId, amount);
+                
+                if (response.data.success) {
+                    alert('입찰 성공!');
+                    document.getElementById('bidAmount').value = '';
+                    // 실시간으로 WebSocket을 통해 업데이트됨
+                } else {
+                    alert(response.data.message || '입찰에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('Bid error:', error);
+                const errorMessage = error.response?.data?.message || '입찰에 실패했습니다.';
+                alert(errorMessage);
+            } finally {
+                bidButton.disabled = false;
+                bidButton.innerHTML = '<i class="bi bi-gavel"></i> 입찰하기';
+            }
+        }
+
+        // 채팅하기
+        function goToChat() {
+            location.href = `chat.html?auctionId=${auctionId}`;
+        }
+
+        function getStatusBadge(status) {
+            switch(status) {
+                case 'READY':
+                    return { text: '경매 대기', class: 'bg-secondary' };
+                case 'ONGOING':
+                    return { text: '진행중', class: 'bg-success' };
+                case 'ENDED':
+                    return { text: '종료', class: 'bg-danger' };
+                case 'COMPLETED':
+                    return { text: '낙찰 완료', class: 'bg-primary' };
+                default:
+                    return { text: status, class: 'bg-secondary' };
+            }
+        }
+
+        // 사용자 포인트 로드
+        async function loadUserPoint() {
+            try {
+                const response = await UserAPI.getMyInfo();
+                if (response.data.success) {
+                    const point = response.data.data.totalPoint || 0;
+                    document.getElementById('userPoint').textContent = formatPrice(point).replace('원', '');
+                }
+            } catch (error) {
+                console.error('Failed to load user point:', error);
+            }
+        }
+
+        // 페이지 로드 시 초기화
+        window.addEventListener('DOMContentLoaded', () => {
+            loadUserPoint();
+            loadAuctionDetail();
+            connectWebSocket();
+        });
+
+        // 페이지 떠날 때 WebSocket 연결 해제
+        window.addEventListener('beforeunload', () => {
+            if (stompClient) {
+                stompClient.disconnect();
+            }
+        });
+    </script>
+</body>
+</html>
+

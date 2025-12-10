@@ -3,9 +3,11 @@ package com.ch.auction.auction.interfaces.api
 import com.ch.auction.auction.application.service.SellerAuctionService
 import com.ch.auction.auction.interfaces.api.dto.admin.AuctionCreateRequest
 import com.ch.auction.common.ApiResponse
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
+@Tag(name = "Seller Auction Api", description = "판매자 경매 API")
 @RestController
 @RequestMapping("/api/v1/seller/auctions")
 class SellerAuctionController(

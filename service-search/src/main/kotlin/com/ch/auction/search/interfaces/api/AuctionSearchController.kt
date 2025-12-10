@@ -14,12 +14,12 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/api/v1/search/auctions")
+@RequestMapping("/api/v1/search")
 class AuctionSearchController(
     private val auctionSearchService: AuctionSearchService
 ) {
 
-    @GetMapping
+    @GetMapping("/auctions")
     fun search(
         @ModelAttribute condition: AuctionSearchCondition,
         @PageableDefault(size = 20) pageable: Pageable

@@ -37,3 +37,12 @@ jwt:
   issuer: auction-service
   access-token-ttl: 1800000
   refresh-token-ttl: 604800000
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    tags-sorter: alpha
+    operations-sorter: alpha

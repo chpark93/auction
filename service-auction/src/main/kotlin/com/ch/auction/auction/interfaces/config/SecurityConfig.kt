@@ -16,9 +16,25 @@ class SecurityConfig {
         http: HttpSecurity
     ): SecurityFilterChain {
         http
-            .csrf { it.disable() }
+            .csrf {
+                it.disable()
+            }
+            .httpBasic {
+                it.disable()
+            }
+            .formLogin {
+                it.disable()
+            }
+            .logout {
+                it.disable()
+            }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests {
+                it.requestMatchers(
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**",
+                    "/swagger-ui.html"
+                ).permitAll()
                 it.anyRequest().permitAll()
             }
         

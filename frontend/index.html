@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>경매 리스트 - 경매 시스템</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .search-box {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
+        .auction-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            height: 100%;
+        }
+        .auction-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+        .auction-thumbnail {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 48px;
+        }
+        .status-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+        }
+        .price-tag {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .time-remaining {
+            color: #dc3545;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <!-- 네비게이션 -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="index.html">🏆 경매 시스템</a>
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3">
+                    <i class="bi bi-wallet2"></i> 
+                    <span id="userPoint">0</span>원
+                </span>
+                <button class="btn btn-warning btn-sm me-2" onclick="location.href='create-auction.html'">
+                    <i class="bi bi-plus-circle"></i> 물품 등록
+                </button>
+                <button class="btn btn-light btn-sm me-2" onclick="location.href='mypage.html'">
+                    <i class="bi bi-person-circle"></i> 마이페이지
+                </button>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()">로그아웃</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <!-- 검색 박스 -->
+        <div class="search-box">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <input type="text" class="form-control" id="searchKeyword" 
+                           placeholder="🔍 경매 물품 검색 (Elasticsearch 기반)">
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" id="searchCategory">
+                        <option value="">전체 카테고리</option>
+                        <option value="ELECTRONICS">전자기기</option>
+                        <option value="FASHION">패션</option>
+                        <option value="SPORTS">스포츠</option>
+                        <option value="BOOKS">도서</option>
+                        <option value="ETC">기타</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <select class="form-select" id="searchStatus">
+                                <option value="">전체 상태</option>
+                                <option value="READY">경매 대기</option>
+                                <option value="ONGOING">진행중</option>
+                                <option value="ENDED">종료</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="number" class="form-control" id="minPrice" placeholder="최소 가격">
+                        </div>
+                        <div class="col-md-4">
+                            <input type="number" class="form-control" id="maxPrice" placeholder="최대 가격">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-primary w-100" onclick="searchAuctions()">
+                        <i class="bi bi-search"></i> 검색
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 경매 리스트 -->
+        <div class="row" id="auctionList">
+            <!-- 경매 카드들이 동적으로 추가됨 -->
+        </div>
+
+        <!-- 로딩 -->
+        <div id="loading" class="text-center my-5" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+
+        <!-- 결과 없음 -->
+        <div id="noResults" class="text-center my-5" style="display: none;">
+            <i class="bi bi-inbox" style="font-size: 5rem; color: #ccc;"></i>
+            <h4 class="text-muted mt-3">검색 결과가 없습니다.</h4>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        // 페이지 로드 시 로그인 체크
+        if (!requireLogin()) {
+            // requireLogin이 false를 반환하면 여기서 중단
+        }
+
+        // 사용자 포인트 로드
+        async function loadUserPoint() {
+            try {
+                const response = await UserAPI.getMyInfo();
+                if (response.data.success) {
+                    const point = response.data.data.totalPoint || 0;
+                    document.getElementById('userPoint').textContent = formatPrice(point).replace('원', '');
+                }
+            } catch (error) {
+                console.error('Failed to load user point:', error);
+            }
+        }
+
+        // 경매 리스트 로드
+        async function loadAuctions() {
+            const loading = document.getElementById('loading');
+            const noResults = document.getElementById('noResults');
+            const auctionList = document.getElementById('auctionList');
+            
+            loading.style.display = 'block';
+            noResults.style.display = 'none';
+            auctionList.innerHTML = '';
+            
+            try {
+                const response = await AuctionAPI.getList({ page: 0, size: 20 });
+                console.log('Auction response:', response.data);
+                
+                if (response.data.success) {
+                    // Page 객체의 content 배열 사용
+                    const auctions = response.data.data.content || [];
+                    
+                    if (auctions.length > 0) {
+                        renderAuctions(auctions);
+                    } else {
+                        noResults.style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load auctions:', error);
+                alert('경매 목록을 불러오는데 실패했습니다.');
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // 검색
+        async function searchAuctions() {
+            const keyword = document.getElementById('searchKeyword').value;
+            const category = document.getElementById('searchCategory').value;
+            const status = document.getElementById('searchStatus').value;
+            const minPrice = document.getElementById('minPrice').value;
+            const maxPrice = document.getElementById('maxPrice').value;
+            
+            const loading = document.getElementById('loading');
+            const noResults = document.getElementById('noResults');
+            const auctionList = document.getElementById('auctionList');
+            
+            loading.style.display = 'block';
+            noResults.style.display = 'none';
+            auctionList.innerHTML = '';
+            
+            try {
+                const params = {};
+                if (keyword) params.keyword = keyword;
+                if (category) params.category = category;
+                if (status) params.status = status;
+                if (minPrice) params.minPrice = minPrice;
+                if (maxPrice) params.maxPrice = maxPrice;
+                
+                const response = await SearchAPI.search(params);
+                console.log('Search response:', response.data);
+                
+                if (response.data.success) {
+                    const auctions = response.data.data.content || [];
+                    
+                    if (auctions.length > 0) {
+                        renderAuctions(auctions);
+                    } else {
+                        noResults.style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                alert('검색 중 오류가 발생했습니다. 일반 목록을 불러옵니다.');
+                // 검색 서비스가 없으면 일반 리스트 로드
+                loadAuctions();
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // 경매 카드 렌더링
+        function renderAuctions(auctions) {
+            const auctionList = document.getElementById('auctionList');
+            auctionList.innerHTML = '';
+            
+            if (!auctions || auctions.length === 0) {
+                document.getElementById('noResults').style.display = 'block';
+                return;
+            }
+            
+            auctions.forEach(auction => {
+                const statusBadge = getStatusBadge(auction.status);
+                const timeRemaining = getTimeRemaining(auction.endTime);
+                
+                const card = `
+                    <div class="col-md-4 mb-4">
+                        <div class="card auction-card" onclick="location.href='detail.html?id=${auction.id}'">
+                            <span class="badge ${statusBadge.class} status-badge">${statusBadge.text}</span>
+                            <div class="auction-thumbnail">
+                                <i class="bi bi-image"></i>
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">${escapeHtml(auction.title)}</h5>
+                                <p class="card-text text-muted mb-2">
+                                    <small><i class="bi bi-person"></i> ${escapeHtml(auction.sellerName || '판매자')}</small>
+                                </p>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="text-muted">현재가</span>
+                                    <span class="price-tag">${formatPrice(auction.currentPrice || auction.startPrice || 0)}</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="time-remaining">
+                                        <i class="bi bi-clock"></i> ${timeRemaining}
+                                    </span>
+                                    <span class="text-muted">
+                                        <i class="bi bi-people"></i> ${auction.bidCount || 0}명 입찰
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                auctionList.innerHTML += card;
+            });
+        }
+        
+        // HTML 이스케이프 (XSS 방지)
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 상태 배지 스타일
+        function getStatusBadge(status) {
+            switch(status) {
+                case 'PENDING':
+                    return { text: '승인 대기', class: 'bg-warning' };
+                case 'APPROVED':
+                    return { text: '승인됨', class: 'bg-info' };
+                case 'READY':
+                    return { text: '경매 대기', class: 'bg-secondary' };
+                case 'ONGOING':
+                    return { text: '진행중', class: 'bg-success' };
+                case 'ENDED':
+                    return { text: '종료', class: 'bg-danger' };
+                case 'COMPLETED':
+                    return { text: '낙찰 완료', class: 'bg-primary' };
+                case 'FAILED':
+                    return { text: '유찰', class: 'bg-dark' };
+                default:
+                    return { text: status, class: 'bg-secondary' };
+            }
+        }
+
+        // Enter 키로 검색
+        document.getElementById('searchKeyword').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchAuctions();
+            }
+        });
+
+        // 페이지 로드 시 초기화
+        window.addEventListener('DOMContentLoaded', () => {
+            loadUserPoint();
+            loadAuctions();
+        });
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>경매 물품 등록 - 경매 시스템</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .create-container {
+            max-width: 800px;
+            margin: 50px auto;
+        }
+        .form-card {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        .form-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .form-header h2 {
+            color: #667eea;
+            font-weight: bold;
+        }
+        .btn-submit {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        .btn-submit:hover {
+            opacity: 0.9;
+            color: white;
+        }
+        .required-mark {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <!-- 네비게이션 -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="index.html">🏆 경매 시스템</a>
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3">
+                    <i class="bi bi-wallet2"></i> 
+                    <span id="userPoint">0</span>원
+                </span>
+                <button class="btn btn-light btn-sm me-2" onclick="location.href='index.html'">
+                    <i class="bi bi-house"></i> 홈
+                </button>
+                <button class="btn btn-light btn-sm me-2" onclick="location.href='mypage.html'">
+                    <i class="bi bi-person-circle"></i> 마이페이지
+                </button>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()">로그아웃</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="create-container">
+        <div class="form-card">
+            <div class="form-header">
+                <h2>
+                    <i class="bi bi-plus-circle"></i> 경매 물품 등록
+                </h2>
+                <p class="text-muted">판매하실 물품 정보를 입력해주세요</p>
+            </div>
+
+            <form id="createAuctionForm">
+                <!-- 제목 -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold">
+                        제목 <span class="required-mark">*</span>
+                    </label>
+                    <input type="text" class="form-control form-control-lg" id="title" 
+                           placeholder="경매 물품의 제목을 입력하세요" required maxlength="100">
+                    <small class="text-muted">최대 100자</small>
+                </div>
+
+                <!-- 시작가 -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold">
+                        시작가 <span class="required-mark">*</span>
+                    </label>
+                    <div class="input-group input-group-lg">
+                        <input type="number" class="form-control" id="startPrice" 
+                               placeholder="1000" required min="1000" step="1000">
+                        <span class="input-group-text">원</span>
+                    </div>
+                    <small class="text-muted">최소 1,000원부터 입찰 가능합니다</small>
+                </div>
+
+                <!-- 경매 시작 시간 -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold">
+                        경매 시작 시간 <span class="required-mark">*</span>
+                    </label>
+                    <input type="datetime-local" class="form-control form-control-lg" 
+                           id="startTime" required>
+                    <small class="text-muted">현재 시간 이후로 설정해주세요</small>
+                </div>
+
+                <!-- 경매 종료 시간 -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold">
+                        경매 종료 시간 <span class="required-mark">*</span>
+                    </label>
+                    <input type="datetime-local" class="form-control form-control-lg" 
+                           id="endTime" required>
+                    <small class="text-muted">시작 시간보다 최소 1시간 이후로 설정해주세요</small>
+                </div>
+
+                <!-- 빠른 설정 버튼들 -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold">빠른 기간 설정</label>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary" onclick="setQuickDuration(1)">
+                            1일
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="setQuickDuration(3)">
+                            3일
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="setQuickDuration(7)">
+                            7일
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="setQuickDuration(14)">
+                            14일
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 주의사항 -->
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>주의사항</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>경매 등록 후 수정이 불가능합니다</li>
+                        <li>경매 시작 전까지 삭제 가능합니다</li>
+                        <li>허위 물품 등록 시 계정이 정지될 수 있습니다</li>
+                    </ul>
+                </div>
+
+                <!-- 제출 버튼 -->
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-submit">
+                        <i class="bi bi-check-circle"></i> 경매 등록하기
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="history.back()">
+                        취소
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        // 페이지 로드 시 로그인 체크
+        if (!requireLogin()) {
+            // requireLogin이 false를 반환하면 여기서 중단
+        }
+
+        // 사용자 포인트 로드
+        async function loadUserPoint() {
+            try {
+                const response = await UserAPI.getMyInfo();
+                if (response.data.success) {
+                    const point = response.data.data.totalPoint || 0;
+                    document.getElementById('userPoint').textContent = formatPrice(point).replace('원', '');
+                }
+            } catch (error) {
+                console.error('Failed to load user point:', error);
+            }
+        }
+
+        // 현재 시간으로 초기화
+        function initializeDateTime() {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            
+            // 시작 시간: 현재 시간 + 10분
+            const startTime = new Date(now.getTime() + 10 * 60000);
+            document.getElementById('startTime').value = startTime.toISOString().slice(0, 16);
+            
+            // 종료 시간: 시작 시간 + 3일
+            const endTime = new Date(startTime.getTime() + 3 * 24 * 60 * 60000);
+            document.getElementById('endTime').value = endTime.toISOString().slice(0, 16);
+        }
+
+        // 빠른 기간 설정
+        function setQuickDuration(days) {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            
+            // 시작 시간: 현재 시간
+            const startTime = new Date(now.getTime());
+            document.getElementById('startTime').value = startTime.toISOString().slice(0, 16);
+            
+            // 종료 시간: 시작 시간 + days일
+            const endTime = new Date(startTime.getTime() + days * 24 * 60 * 60000);
+            document.getElementById('endTime').value = endTime.toISOString().slice(0, 16);
+        }
+
+        // 경매 등록 폼 제출
+        document.getElementById('createAuctionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const title = document.getElementById('title').value;
+            const startPrice = parseInt(document.getElementById('startPrice').value);
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            
+            // 유효성 검사
+            if (startPrice < 1000) {
+                alert('시작가는 최소 1,000원 이상이어야 합니다.');
+                return;
+            }
+            
+            const startDate = new Date(startTime);
+            const endDate = new Date(endTime);
+            const now = new Date();
+            
+            if (startDate < now) {
+                alert('시작 시간은 현재 시간 이후여야 합니다.');
+                return;
+            }
+            
+            if (endDate <= startDate) {
+                alert('종료 시간은 시작 시간보다 이후여야 합니다.');
+                return;
+            }
+            
+            const duration = (endDate - startDate) / (1000 * 60 * 60); // 시간 단위
+            if (duration < 1) {
+                alert('경매 기간은 최소 1시간 이상이어야 합니다.');
+                return;
+            }
+            
+            if (!confirm('경매를 등록하시겠습니까?\n등록 후에는 수정할 수 없습니다.')) {
+                return;
+            }
+            
+            try {
+                const response = await api.post('/api/v1/seller/auctions', {
+                    title,
+                    startPrice,
+                    startTime,
+                    endTime
+                });
+                
+                if (response.data.success) {
+                    const auctionId = response.data.data;
+                    alert('경매가 등록되었습니다!');
+                    location.href = `detail.html?id=${auctionId}`;
+                } else {
+                    alert(response.data.message || '경매 등록에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('Create auction error:', error);
+                const errorMessage = error.response?.data?.message || '경매 등록에 실패했습니다.';
+                alert(errorMessage);
+            }
+        });
+
+        // 페이지 로드 시 초기화
+        window.addEventListener('DOMContentLoaded', () => {
+            loadUserPoint();
+            initializeDateTime();
+        });
+    </script>
+</body>
+</html>
+

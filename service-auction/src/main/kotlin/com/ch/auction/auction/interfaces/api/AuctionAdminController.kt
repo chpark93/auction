@@ -5,9 +5,11 @@ import com.ch.auction.auction.interfaces.api.dto.admin.AuctionAdminResponse
 import com.ch.auction.auction.interfaces.api.dto.admin.AuctionCreateRequest
 import com.ch.auction.auction.interfaces.api.dto.admin.AuctionUpdateRequest
 import com.ch.auction.common.ApiResponse
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
+@Tag(name = "Auction Admin Api", description = "관리자 경매 API")
 @RestController
 @RequestMapping("/api/v1/admin/auctions")
 class AuctionAdminController(

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>마이페이지 - 경매 시스템</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .profile-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
+        .point-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        .point-amount {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .charge-btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .charge-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <!-- 네비게이션 -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="index.html">🏆 경매 시스템</a>
+            <div class="d-flex align-items-center">
+                <button class="btn btn-light btn-sm me-2" onclick="location.href='index.html'">
+                    <i class="bi bi-house"></i> 홈
+                </button>
+                <button class="btn btn-warning btn-sm me-2" onclick="location.href='create-auction.html'">
+                    <i class="bi bi-plus-circle"></i> 물품 등록
+                </button>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()">로그아웃</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <h2 class="mb-4">
+            <i class="bi bi-person-circle"></i> 마이페이지
+        </h2>
+
+        <div class="row">
+            <!-- 왼쪽: 프로필 & 포인트 -->
+            <div class="col-md-4">
+                <!-- 프로필 카드 -->
+                <div class="profile-card text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-person-circle" style="font-size: 5rem; color: #667eea;"></i>
+                    </div>
+                    <h4 id="userNickname">-</h4>
+                    <p class="text-muted" id="userEmail">-</p>
+                    <span class="badge bg-primary" id="userRole">USER</span>
+                </div>
+
+                <!-- 포인트 카드 -->
+                <div class="point-card">
+                    <h5 class="mb-3">
+                        <i class="bi bi-wallet2"></i> 내 포인트
+                    </h5>
+                    <div class="point-amount mb-3" id="totalPoint">0원</div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span>사용 가능</span>
+                        <strong id="availablePoint">0원</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-4">
+                        <span>사용 중</span>
+                        <strong id="lockedPoint">0원</strong>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button class="charge-btn" onclick="showChargeModal()">
+                            <i class="bi bi-plus-circle"></i> 포인트 충전
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 오른쪽: 통계 & 활동 -->
+            <div class="col-md-8">
+                <!-- 통계 -->
+                <div class="row mb-4">
+                    <div class="col-md-4 mb-3">
+                        <div class="stat-card">
+                            <i class="bi bi-gavel" style="font-size: 2rem; color: #667eea;"></i>
+                            <div class="stat-number" id="bidCount">0</div>
+                            <p class="text-muted mb-0">입찰 횟수</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="stat-card">
+                            <i class="bi bi-trophy" style="font-size: 2rem; color: #ffc107;"></i>
+                            <div class="stat-number" id="winCount">0</div>
+                            <p class="text-muted mb-0">낙찰 횟수</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="stat-card">
+                            <i class="bi bi-cart-check" style="font-size: 2rem; color: #28a745;"></i>
+                            <div class="stat-number" id="sellCount">0</div>
+                            <p class="text-muted mb-0">판매 횟수</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 탭 -->
+                <ul class="nav nav-tabs mb-3" id="myTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="bid-tab" data-bs-toggle="tab" 
+                                data-bs-target="#bid" type="button">입찰 내역</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="win-tab" data-bs-toggle="tab" 
+                                data-bs-target="#win" type="button">낙찰 내역</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="sell-tab" data-bs-toggle="tab" 
+                                data-bs-target="#sell" type="button">판매 내역</button>
+                    </li>
+                </ul>
+
+                <!-- 탭 컨텐츠 -->
+                <div class="tab-content" id="myTabContent">
+                    <!-- 입찰 내역 -->
+                    <div class="tab-pane fade show active" id="bid" role="tabpanel">
+                        <div class="profile-card">
+                            <p class="text-center text-muted">입찰 내역이 없습니다.</p>
+                        </div>
+                    </div>
+                    <!-- 낙찰 내역 -->
+                    <div class="tab-pane fade" id="win" role="tabpanel">
+                        <div class="profile-card">
+                            <p class="text-center text-muted">낙찰 내역이 없습니다.</p>
+                        </div>
+                    </div>
+                    <!-- 판매 내역 -->
+                    <div class="tab-pane fade" id="sell" role="tabpanel">
+                        <div class="profile-card">
+                            <p class="text-center text-muted">판매 내역이 없습니다.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 포인트 충전 모달 -->
+    <div class="modal fade" id="chargeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-wallet2"></i> 포인트 충전
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">충전할 포인트를 선택하세요</p>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-lg" onclick="chargePoint(10000)">
+                            10,000원 충전
+                        </button>
+                        <button class="btn btn-outline-primary btn-lg" onclick="chargePoint(50000)">
+                            50,000원 충전
+                        </button>
+                        <button class="btn btn-outline-primary btn-lg" onclick="chargePoint(100000)">
+                            100,000원 충전
+                        </button>
+                        <button class="btn btn-outline-primary btn-lg" onclick="chargePoint(500000)">
+                            500,000원 충전
+                        </button>
+                    </div>
+                    <hr>
+                    <div class="input-group">
+                        <input type="number" class="form-control" id="customAmount" 
+                               placeholder="직접 입력" step="1000">
+                        <button class="btn btn-primary" onclick="chargeCustomAmount()">충전</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        // 페이지 로드 시 로그인 체크
+        if (!requireLogin()) {
+            // requireLogin이 false를 반환하면 여기서 중단
+        }
+
+        let chargeModalInstance = null;
+
+        // 사용자 정보 로드
+        async function loadUserInfo() {
+            try {
+                const response = await UserAPI.getMyInfo();
+                
+                if (response.data.success) {
+                    const user = response.data.data;
+                    
+                    // 프로필 정보
+                    document.getElementById('userNickname').textContent = user.nickname || '닉네임';
+                    document.getElementById('userEmail').textContent = user.email || '-';
+                    document.getElementById('userRole').textContent = user.role || 'USER';
+                    
+                    // 포인트 정보
+                    const totalPoint = user.totalPoint || 0;
+                    const lockedPoint = user.lockedPoint || 0;
+                    const availablePoint = user.availablePoint || (totalPoint - lockedPoint);
+                    
+                    document.getElementById('totalPoint').textContent = formatPrice(totalPoint);
+                    document.getElementById('availablePoint').textContent = formatPrice(availablePoint);
+                    document.getElementById('lockedPoint').textContent = formatPrice(lockedPoint);
+                    
+                    // 통계 (임시 데이터)
+                    document.getElementById('bidCount').textContent = '0';
+                    document.getElementById('winCount').textContent = '0';
+                    document.getElementById('sellCount').textContent = '0';
+                }
+            } catch (error) {
+                console.error('Failed to load user info:', error);
+                alert('사용자 정보를 불러오는데 실패했습니다.');
+            }
+        }
+
+        // 충전 모달 표시
+        function showChargeModal() {
+            if (!chargeModalInstance) {
+                chargeModalInstance = new bootstrap.Modal(document.getElementById('chargeModal'));
+            }
+            chargeModalInstance.show();
+        }
+
+        // 포인트 충전
+        async function chargePoint(amount) {
+            if (!confirm(`${formatPrice(amount)}를 충전하시겠습니까?`)) {
+                return;
+            }
+            
+            try {
+                const response = await UserAPI.chargePoint(amount);
+                
+                if (response.data.success) {
+                    alert('충전 완료!');
+                    chargeModalInstance.hide();
+                    loadUserInfo(); // 포인트 정보 새로고침
+                } else {
+                    alert(response.data.message || '충전에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('Charge error:', error);
+                const errorMessage = error.response?.data?.message || '충전에 실패했습니다.';
+                alert(errorMessage);
+            }
+        }
+
+        // 커스텀 금액 충전
+        function chargeCustomAmount() {
+            const amount = parseInt(document.getElementById('customAmount').value);
+            
+            if (!amount || amount <= 0) {
+                alert('충전 금액을 입력해주세요.');
+                return;
+            }
+            
+            if (amount < 1000) {
+                alert('최소 충전 금액은 1,000원입니다.');
+                return;
+            }
+            
+            chargePoint(amount);
+        }
+
+        // 페이지 로드 시 초기화
+        window.addEventListener('DOMContentLoaded', () => {
+            loadUserInfo();
+        });
+    </script>
+</body>
+</html>
+

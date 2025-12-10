@@ -18,13 +18,27 @@ class SecurityConfig {
         http: HttpSecurity
     ): SecurityFilterChain {
         http
-            .csrf { it.disable() }
+            .csrf {
+                it.disable()
+            }
+            .httpBasic {
+                it.disable()
+            }
+            .formLogin {
+                it.disable()
+            }
+            .logout {
+                it.disable()
+            }
             .sessionManagement { sessionManagementConfigurer ->
                 sessionManagementConfigurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             }
             .authorizeHttpRequests { authorizeHttpRequestConfigurer ->
                 authorizeHttpRequestConfigurer.requestMatchers(
                     "/ws-auction/**",
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**",
+                    "/swagger-ui.html",
                     "/h2-console/**",
                     "/favicon.ico",
                     "/error"

@@ -1,15 +1,19 @@
 package com.ch.auction.auction.application.service
 
 import com.ch.auction.auction.domain.AuctionRepository
+import com.ch.auction.auction.domain.AuctionStatus
 import com.ch.auction.auction.domain.BidResult
 import com.ch.auction.auction.infrastructure.client.user.UserClient
 import com.ch.auction.auction.infrastructure.persistence.AuctionJpaRepository
 import com.ch.auction.auction.infrastructure.redis.SellerInfoCacheRepository
 import com.ch.auction.auction.infrastructure.redis.UserStatusCacheRepository
+import com.ch.auction.auction.interfaces.api.dto.AuctionListResponse
 import com.ch.auction.auction.interfaces.api.dto.AuctionResponse
 import com.ch.auction.common.ErrorCode
 import com.ch.auction.common.enums.UserStatus
 import com.ch.auction.exception.BusinessException
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import java.time.Instant
@@ -76,6 +80,29 @@ class AuctionService(
             auction = auction,
             sellerName = sellerName
         )
+    }
+
+    fun getAuctions(
+        pageable: Pageable
+    ): Page<AuctionListResponse> {
+        val statuses = listOf(
+            AuctionStatus.ONGOING,
+            AuctionStatus.READY,
+            AuctionStatus.APPROVED
+        )
+        
+        val auctions = auctionJpaRepository.findByStatusInOrderByCreatedAtDesc(
+            statuses = statuses,
+            pageable = pageable
+        )
+
+        return auctions.map { auction ->
+            val sellerName = getSellerName(auction.sellerId)
+            AuctionListResponse.from(
+                auction = auction,
+                sellerName = sellerName
+            )
+        }
     }
 
     private fun getSellerName(

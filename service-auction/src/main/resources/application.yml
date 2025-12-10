@@ -5,10 +5,10 @@ spring:
   application:
     name: service-auction
   datasource:
-    url: jdbc:h2:mem:auctions;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: jdbc:mysql://localhost:3306/auctions?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: 1234
   jpa:
     hibernate:
       ddl-auto: update
@@ -16,11 +16,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.H2Dialect
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+        dialect: org.hibernate.dialect.MySQLDialect
   data:
     redis:
       host: localhost
@@ -41,3 +37,12 @@ jwt:
   issuer: auction-service
   access-token-ttl: 1800000
   refresh-token-ttl: 604800000
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    tags-sorter: alpha
+    operations-sorter: alpha

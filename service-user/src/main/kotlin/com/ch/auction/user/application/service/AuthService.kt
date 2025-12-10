@@ -9,6 +9,7 @@ import com.ch.auction.domain.repository.TokenBlacklistRepository
 import com.ch.auction.exception.BusinessException
 import com.ch.auction.user.domain.User
 import com.ch.auction.user.infrastructure.persistence.UserRepository
+import com.ch.auction.user.infrastructure.redis.UserStatusCacheRepository
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -20,7 +21,8 @@ class AuthService(
     private val authTokenIssuer: AuthTokenIssuer,
     private val authTokenParser: AuthTokenParser,
     private val refreshTokenRepository: RefreshTokenRepository,
-    private val tokenBlacklistRepository: TokenBlacklistRepository
+    private val tokenBlacklistRepository: TokenBlacklistRepository,
+    private val userStatusCacheRepository: UserStatusCacheRepository
 ) {
     @Transactional
     fun signUp(
@@ -71,6 +73,12 @@ class AuthService(
         refreshTokenRepository.save(
             email = user.email,
             refreshToken = refreshToken
+        )
+
+        // Redis에 사용자 상태 저장 (입찰 시 빠른 검증용)
+        userStatusCacheRepository.saveUserStatus(
+            userId = user.id,
+            status = user.status.name
         )
 
         return AuthDTOs.LoginResponse(
@@ -146,6 +154,12 @@ class AuthService(
         refreshTokenRepository.save(
             email = email,
             refreshToken = newRefreshToken
+        )
+
+        // Redis에 사용자 상태 갱신 (토큰 재발급 시에도 캐시 유지)
+        userStatusCacheRepository.saveUserStatus(
+            userId = user.id,
+            status = user.status.name
         )
 
         return AuthDTOs.LoginResponse(
