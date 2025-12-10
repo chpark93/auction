@@ -49,11 +49,11 @@ spring:
                 - Method=POST,PUT,DELETE
               filters:
                 - AuthorizationHeaderFilter
-            # Auction Admin
-            - id: service-auction-admin
-              uri: lb://SERVICE-AUCTION
+            # Admin Service
+            - id: service-admin
+              uri: lb://SERVICE-ADMIN
               predicates:
-                - Path=/api/v1/admin/auctions/**
+                - Path=/api/v1/admin/**
               filters:
                 - AuthorizationHeaderFilter
             # Auction WebSocket
@@ -86,6 +86,12 @@ spring:
               predicates:
                 - Path=/ws-chat/**
             # Swagger UI Routes for each service
+            - id: service-admin-swagger
+              uri: lb://SERVICE-ADMIN
+              predicates:
+                - Path=/service-admin/v3/api-docs
+              filters:
+                - RewritePath=/service-admin/v3/api-docs, /v3/api-docs
             - id: service-user-swagger
               uri: lb://SERVICE-USER
               predicates:
@@ -135,6 +141,8 @@ springdoc:
     enabled: true
     path: /swagger-ui.html
     urls:
+      - name: Admin Service (BFF)
+        url: /service-admin/v3/api-docs
       - name: User Service
         url: /service-user/v3/api-docs
       - name: Auction Service

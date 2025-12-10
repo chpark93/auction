@@ -66,7 +66,10 @@ enum class ErrorCode(
     // Payment
     DUPLICATE_PAYMENT(HttpStatus.CONFLICT, "Duplicate payment"),
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Payment not found"),
-    PAYMENT_VERIFICATION_FAILED(HttpStatus.BAD_REQUEST, "Payment verification failed")
+    PAYMENT_VERIFICATION_FAILED(HttpStatus.BAD_REQUEST, "Payment verification failed"),
+
+    // Settlement
+    SETTLEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Settlement not found")
     ;
 
     val code: String

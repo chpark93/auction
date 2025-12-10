@@ -156,4 +156,10 @@ class User private constructor(
     ) {
         this.nickname = nickname
     }
+    
+    fun updateStatus(
+        status: UserStatus
+    ) {
+        this.status = status
+    }
 }

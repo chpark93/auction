@@ -1,24 +1,28 @@
-package com.ch.auction.gateway
+package com.ch.auction.admin
 
-import com.ch.auction.common.security.jwt.JwtProperties
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
-import org.springframework.boot.context.properties.EnableConfigurationProperties
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.runApplication
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient
+import org.springframework.cloud.openfeign.EnableFeignClients
 
 @SpringBootApplication(
-    scanBasePackages = ["com.ch.auction.gateway"],
+    scanBasePackages = ["com.ch.auction"],
     exclude = [
         DataSourceAutoConfiguration::class,
         HibernateJpaAutoConfiguration::class
     ]
 )
 @EnableDiscoveryClient
-@EnableConfigurationProperties(JwtProperties::class)
-class GatewayApplication
+@EnableFeignClients
+@ConfigurationPropertiesScan(
+    basePackages = ["com.ch.auction"]
+)
+class AdminApplication
 
 fun main(args: Array<String>) {
-    runApplication<GatewayApplication>(*args)
+    runApplication<AdminApplication>(*args)
 }
+
