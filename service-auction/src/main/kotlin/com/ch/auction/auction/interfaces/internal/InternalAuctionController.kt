@@ -137,5 +137,17 @@ class InternalAuctionController(
             ApiResponse.ok()
         )
     }
+    
+    @Operation(summary = "Elasticsearch 동기화", description = "모든 경매 데이터를 Elasticsearch에 동기화")
+    @PostMapping("/sync-search")
+    fun syncToElasticsearch(): ResponseEntity<ApiResponse<Map<String, Any>>> {
+        val result = auctionService.syncToElasticsearch()
+        
+        return ResponseEntity.ok(
+            ApiResponse.ok(
+                data = result
+            )
+        )
+    }
 }
 

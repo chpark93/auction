@@ -3,6 +3,8 @@ package com.ch.auction.auction.application.service
 import com.ch.auction.auction.domain.AuctionRepository
 import com.ch.auction.auction.domain.AuctionStatus
 import com.ch.auction.auction.domain.BidResult
+import com.ch.auction.auction.infrastructure.client.search.AuctionDocumentDto
+import com.ch.auction.auction.infrastructure.client.search.SearchClient
 import com.ch.auction.auction.infrastructure.client.user.UserClient
 import com.ch.auction.auction.infrastructure.client.user.dtos.UserClientDtos
 import com.ch.auction.auction.infrastructure.persistence.AuctionJpaRepository
@@ -34,7 +36,8 @@ class AuctionService(
     private val sellerInfoCacheRepository: SellerInfoCacheRepository,
     private val userStatusCacheRepository: UserStatusCacheRepository,
     private val userClient: UserClient,
-    private val bidCancellationService: BidCancellationService
+    private val bidCancellationService: BidCancellationService,
+    private val searchClient: SearchClient
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -271,31 +274,9 @@ class AuctionService(
             pageable = PageRequest.of(0, limit)
         )
 
-        if (bids.isEmpty()) {
-            return emptyList()
-        }
-
-        val userIds = bids.map { it.userId }.distinct()
-
-        val usersMap = try {
-            val response = userClient.getUsersBatch(
-                userIds = userIds
-            )
-            response.data?.associateBy { it.id } ?: emptyMap()
-        } catch (e: Exception) {
-            logger.error("Failed to fetch users for bid history", e)
-            emptyMap()
-        }
-
         return bids.map { bid ->
-            val user = usersMap[bid.userId]
-            val userEmail = user?.email ?: "Unknown"
-            val userNickname = user?.nickname
-
             BidHistoryResponse.from(
-                bid = bid,
-                userEmail = userEmail,
-                userNickname = userNickname
+                bid = bid
             )
         }
     }
@@ -389,5 +370,66 @@ class AuctionService(
             "biddingCount" to activeBids.size,
             "auctions" to biddingAuctions
         )
+    }
+    
+    /**
+     * Elasticsearch 동기화(수동)
+     */
+    fun syncToElasticsearch(): Map<String, Any> {
+        try {
+            // 모든 경매 데이터 조회
+            val auctions = auctionJpaRepository.findAll()
+            
+            val documents = auctions.map { auction ->
+                val redisInfo = auctionRepository.getAuctionRedisInfo(
+                    auctionId = auction.id!!
+                )
+                val currentPrice = redisInfo?.currentPrice ?: auction.currentPrice
+                val bidCount = redisInfo?.bidCount ?: 0
+                
+                val sellerName = try {
+                    val sellerResponse = userClient.getUsersBatch(
+                        userIds = listOf(auction.sellerId)
+                    )
+                    sellerResponse.data?.firstOrNull()?.nickname ?: "Unknown"
+                } catch (e: Exception) {
+                    logger.error("Failed to fetch seller info for auction ${auction.id}", e)
+                    "Unknown"
+                }
+                
+                AuctionDocumentDto(
+                    id = auction.id.toString(),
+                    title = auction.title,
+                    category = "일반",
+                    sellerName = sellerName,
+                    startPrice = auction.startPrice,
+                    currentPrice = currentPrice,
+                    bidCount = bidCount,
+                    status = auction.status.name,
+                    thumbnailUrl = null,
+                    createdAt = auction.createdAt,
+                    endTime = auction.endTime
+                )
+            }
+            
+            // Elasticsearch에 인덱싱
+            val response = searchClient.reindexAuctions(
+                documents = documents
+            )
+            
+            logger.info("Successfully synced ${documents.size} auctions to Elasticsearch")
+            
+            return mapOf(
+                "success" to true,
+                "total" to documents.size,
+                "indexed" to (response.data?.get("indexed") ?: 0)
+            )
+        } catch (e: Exception) {
+            logger.error("Failed to sync auctions to Elasticsearch", e)
+            return mapOf(
+                "success" to false,
+                "error" to (e.message ?: "Unknown error")
+            )
+        }
     }
 }

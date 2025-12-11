@@ -1,7 +1,9 @@
 package com.ch.auction.auction.application.service
 
 import com.ch.auction.auction.domain.Auction
+import com.ch.auction.auction.domain.AuctionRepository
 import com.ch.auction.auction.domain.AuctionStatus
+import com.ch.auction.auction.infrastructure.client.user.UserClient
 import com.ch.auction.auction.infrastructure.persistence.AuctionJpaRepository
 import com.ch.auction.auction.interfaces.api.dto.admin.AuctionCreateRequest
 import com.ch.auction.common.ErrorCode
@@ -15,7 +17,9 @@ import java.time.format.DateTimeFormatter
 @Service
 class SellerAuctionService(
     private val auctionJpaRepository: AuctionJpaRepository,
+    private val auctionRepository: AuctionRepository,
     private val kafkaTemplate: KafkaTemplate<String, Any>,
+    private val userClient: UserClient,
     private val objectMapper: ObjectMapper
 ) {
     @Transactional
@@ -23,6 +27,11 @@ class SellerAuctionService(
         sellerId: Long,
         request: AuctionCreateRequest
     ): Long {
+        val userResponse = userClient.getUserInfo(
+            userId = sellerId
+        )
+        val user = userResponse.data ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+
         val auction = Auction.create(
             title = request.title,
             startPrice = request.startPrice,
@@ -37,8 +46,8 @@ class SellerAuctionService(
         val event = mapOf(
             "id" to savedAuction.id!!,
             "title" to savedAuction.title,
-            "category" to "일반", // 기본 카테고리 (추후 확장 가능)
-            "sellerName" to "Seller#$sellerId", // 추후 실제 판매자 닉네임으로 변경
+            "category" to "일반", // TODO: 카테고리 추후 확장
+            "sellerName" to user.nickname,
             "startPrice" to savedAuction.startPrice,
             "thumbnailUrl" to null,
             "createdAt" to savedAuction.createdAt.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
@@ -48,7 +57,7 @@ class SellerAuctionService(
         val eventJson = objectMapper.writeValueAsString(event)
         kafkaTemplate.send("auction-create-topic", eventJson)
 
-        return savedAuction.id!!
+        return savedAuction.id
     }
 
     @Transactional
@@ -68,5 +77,34 @@ class SellerAuctionService(
         }
 
         auction.delete()
+    }
+    
+    /**
+     * 판매자가 등록한 경매 목록 조회
+     */
+    fun getMyAuctions(
+        sellerId: Long
+    ): List<Map<String, Any>> {
+        val auctions = auctionJpaRepository.findAll()
+            .filter { it.sellerId == sellerId }
+            .sortedByDescending { it.createdAt }
+        
+        return auctions.map { auction ->
+            val redisInfo = auctionRepository.getAuctionRedisInfo(auction.id!!)
+            val currentPrice = redisInfo?.currentPrice ?: auction.currentPrice
+            val bidCount = redisInfo?.bidCount ?: 0
+            
+            mapOf(
+                "auctionId" to auction.id,
+                "title" to auction.title,
+                "startPrice" to auction.startPrice,
+                "currentPrice" to currentPrice,
+                "bidCount" to bidCount,
+                "status" to auction.status.name,
+                "startTime" to auction.startTime.toString(),
+                "endTime" to auction.endTime.toString(),
+                "createdAt" to auction.createdAt.toString()
+            )
+        }
     }
 }

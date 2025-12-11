@@ -44,7 +44,9 @@ class InternalUserController(
     fun getUser(
         @PathVariable userId: Long
     ): ResponseEntity<ApiResponse<UserResponse>> {
-        val user = userService.getUser(userId)
+        val user = userService.getUser(
+            userId = userId
+        )
         
         return ResponseEntity.ok(
             ApiResponse.ok(
@@ -56,10 +58,10 @@ class InternalUserController(
     @Operation(summary = "회원 일괄 조회 (Batch)", description = "회원 정보 일괄 조회")
     @GetMapping("/batch")
     fun getUsersBatch(
-        @RequestParam ids: List<Long>
+        @RequestParam userIds: List<Long>
     ): ResponseEntity<ApiResponse<List<UserResponse>>> {
         val users = userService.getUsersBatch(
-            userIds = ids
+            userIds = userIds
         )
         
         return ResponseEntity.ok(

@@ -146,15 +146,15 @@
                 <ul class="nav nav-tabs mb-3" id="myTab" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="bid-tab" data-bs-toggle="tab" 
-                                data-bs-target="#bid" type="button">입찰 내역</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="win-tab" data-bs-toggle="tab" 
-                                data-bs-target="#win" type="button">낙찰 내역</button>
+                                data-bs-target="#bid" type="button">
+                            <i class="bi bi-hand-index"></i> 입찰 중인 경매
+                        </button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="sell-tab" data-bs-toggle="tab" 
-                                data-bs-target="#sell" type="button">판매 내역</button>
+                                data-bs-target="#sell" type="button">
+                            <i class="bi bi-tag"></i> 내가 등록한 경매
+                        </button>
                     </li>
                 </ul>
 
@@ -166,16 +166,10 @@
                             <p class="text-center text-muted">로딩 중...</p>
                         </div>
                     </div>
-                    <!-- 낙찰 내역 -->
-                    <div class="tab-pane fade" id="win" role="tabpanel">
-                        <div class="profile-card">
-                            <p class="text-center text-muted">낙찰 내역이 없습니다.</p>
-                        </div>
-                    </div>
-                    <!-- 판매 내역 -->
+                    <!-- 내가 등록한 경매 -->
                     <div class="tab-pane fade" id="sell" role="tabpanel">
-                        <div class="profile-card">
-                            <p class="text-center text-muted">판매 내역이 없습니다.</p>
+                        <div id="myAuctionsList" class="profile-card">
+                            <p class="text-center text-muted">로딩 중...</p>
                         </div>
                     </div>
                 </div>
@@ -318,6 +312,12 @@
         window.addEventListener('DOMContentLoaded', () => {
             loadUserInfo();
             loadBiddingAuctions();
+            loadMyAuctions();
+        });
+        
+        // 탭 전환 시 데이터 로드
+        document.getElementById('sell-tab').addEventListener('click', () => {
+            loadMyAuctions();
         });
         
         // 입찰 중인 경매 목록 조회
@@ -391,6 +391,108 @@
             } catch (error) {
                 console.error('Cancel bid error:', error);
                 alert(error.response?.data?.error?.message || '입찰 포기에 실패했습니다.');
+            }
+        }
+        
+        // 내가 등록한 경매 목록 조회
+        async function loadMyAuctions() {
+            try {
+                const response = await AuctionAPI.getMyAuctions();
+                
+                if (response.data.success) {
+                    const auctions = response.data.data;
+                    const container = document.getElementById('myAuctionsList');
+                    
+                    if (!auctions || auctions.length === 0) {
+                        container.innerHTML = '<p class="text-center text-muted">등록한 경매가 없습니다.</p>';
+                        return;
+                    }
+                    
+                    // 목록 렌더링
+                    container.innerHTML = auctions.map(auction => {
+                        const statusBadge = getStatusBadge(auction.status);
+                        
+                        return `
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h5 class="card-title mb-0">${auction.title}</h5>
+                                        <span class="badge ${statusBadge.class}">${statusBadge.text}</span>
+                                    </div>
+                                    <div class="row mt-3">
+                                        <div class="col-md-6">
+                                            <p class="mb-1"><strong>시작가:</strong> ${formatPrice(auction.startPrice)}</p>
+                                            <p class="mb-1"><strong>현재가:</strong> ${formatPrice(auction.currentPrice)}</p>
+                                            <p class="mb-1"><strong>입찰 수:</strong> ${auction.bidCount}회</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p class="mb-1"><small class="text-muted">시작: ${new Date(auction.startTime).toLocaleString()}</small></p>
+                                            <p class="mb-1"><small class="text-muted">종료: ${new Date(auction.endTime).toLocaleString()}</small></p>
+                                            <p class="mb-1"><small class="text-muted">등록: ${new Date(auction.createdAt).toLocaleString()}</small></p>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 text-end">
+                                        <button class="btn btn-sm btn-primary" onclick="location.href='detail.html?id=${auction.auctionId}'">
+                                            <i class="bi bi-eye"></i> 상세보기
+                                        </button>
+                                        ${auction.status === 'PENDING' 
+                                            ? `<button class="btn btn-sm btn-danger" onclick="deleteMyAuction(${auction.auctionId})">
+                                                <i class="bi bi-trash"></i> 삭제
+                                            </button>` 
+                                            : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load my auctions:', error);
+                const container = document.getElementById('myAuctionsList');
+                container.innerHTML = '<p class="text-center text-danger">경매 목록을 불러오는데 실패했습니다.</p>';
+            }
+        }
+        
+        // 내 경매 삭제
+        async function deleteMyAuction(auctionId) {
+            if (!confirm('정말 삭제하시겠습니까? 승인 대기 중인 경매만 삭제할 수 있습니다.')) {
+                return;
+            }
+            
+            try {
+                const response = await axios.delete(`/api/v1/seller/auctions/${auctionId}`);
+                
+                if (response.data.success) {
+                    alert('경매가 삭제되었습니다.');
+                    loadMyAuctions();
+                } else {
+                    alert(response.data.error?.message || '삭제에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('Delete auction error:', error);
+                alert(error.response?.data?.error?.message || '삭제에 실패했습니다.');
+            }
+        }
+        
+        // 상태 뱃지 생성
+        function getStatusBadge(status) {
+            switch(status) {
+                case 'PENDING':
+                    return { text: '승인 대기', class: 'bg-warning' };
+                case 'READY':
+                    return { text: '경매 대기', class: 'bg-secondary' };
+                case 'ONGOING':
+                    return { text: '진행중', class: 'bg-success' };
+                case 'ENDED':
+                    return { text: '종료', class: 'bg-danger' };
+                case 'COMPLETED':
+                    return { text: '낙찰 완료', class: 'bg-primary' };
+                case 'FAILED':
+                    return { text: '유찰', class: 'bg-dark' };
+                case 'REJECTED':
+                    return { text: '승인 거절', class: 'bg-danger' };
+                default:
+                    return { text: status, class: 'bg-secondary' };
             }
         }
     </script>

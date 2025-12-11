@@ -9,8 +9,17 @@ spring:
       server:
         webflux:
           routes:
+            # Internal APIs - ROLE_ADMIN only
+            # /internal/auctions/sync-search - 관리자 권한 필요
+            - id: internal-auction-sync
+              uri: lb://SERVICE-AUCTION
+              predicates:
+                - Path=/internal/auctions/sync-search
+                - Method=POST
+              filters:
+                - RoleCheckFilter=ROLE_ADMIN
             # ⛔️ Internal APIs - Block external access
-            # /internal/** 경로는 서비스 간 통신 전용으로, 외부에서 접근 불가
+            # 나머지 /internal/** 경로는 서비스 간 통신 전용으로, 외부에서 접근 불가
             - id: block-internal-apis
               uri: no://op
               predicates:

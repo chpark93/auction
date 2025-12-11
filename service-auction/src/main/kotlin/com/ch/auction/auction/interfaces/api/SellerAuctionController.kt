@@ -45,4 +45,17 @@ class SellerAuctionController(
             ApiResponse.ok()
         )
     }
+    
+    @GetMapping
+    fun getMyAuctions(
+        @RequestHeader("X-User-Id") sellerId: Long
+    ): ResponseEntity<ApiResponse<List<Map<String, Any>>>> {
+        val auctions = sellerAuctionService.getMyAuctions(sellerId)
+        
+        return ResponseEntity.ok(
+            ApiResponse.ok(
+                data = auctions
+            )
+        )
+    }
 }

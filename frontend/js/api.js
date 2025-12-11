@@ -179,7 +179,14 @@ const AuctionAPI = {
         if (!user) return Promise.reject(new Error('Not logged in'));
         return api.get(`/api/v1/auctions/users/${user.userId}/bidding`);
     },
-    create: (data) => api.post('/api/v1/seller/auctions', data)
+    create: (data) => api.post('/api/v1/seller/auctions', data),
+    getMyAuctions: () => {
+        const user = getCurrentUser();
+        if (!user) return Promise.reject(new Error('Not logged in'));
+        return api.get('/api/v1/seller/auctions/my-selling', {
+            headers: { 'X-User-Id': user.userId }
+        });
+    }
 };
 
 // Search API

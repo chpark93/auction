@@ -6,9 +6,6 @@ import java.time.LocalDateTime
 
 data class BidHistoryResponse(
     val bidId: Long,
-    val userId: Long,
-    val userEmail: String,
-    val userNickname: String?,
     val amount: Long,
     val bidTime: LocalDateTime,
     val sequence: Long,
@@ -16,15 +13,10 @@ data class BidHistoryResponse(
 ) {
     companion object {
         fun from(
-            bid: Bid,
-            userEmail: String,
-            userNickname: String?
+            bid: Bid
         ): BidHistoryResponse {
             return BidHistoryResponse(
                 bidId = bid.id!!,
-                userId = bid.userId,
-                userEmail = userEmail,
-                userNickname = userNickname,
                 amount = bid.amount,
                 bidTime = bid.bidTime,
                 sequence = bid.sequence,

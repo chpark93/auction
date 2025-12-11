@@ -1,9 +1,12 @@
 package com.ch.auction.search.application.service
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient
+import co.elastic.clients.elasticsearch._types.SortOptions
+import co.elastic.clients.elasticsearch._types.SortOrder
 import co.elastic.clients.elasticsearch._types.aggregations.CalendarInterval
 import co.elastic.clients.elasticsearch._types.query_dsl.*
 import com.ch.auction.search.domain.document.AuctionDocument
+import com.ch.auction.search.infrastructure.persistence.AuctionSearchRepository
 import com.ch.auction.search.interfaces.api.dto.AuctionSearchCondition
 import com.ch.auction.search.interfaces.api.dto.AuctionStatsResponse
 import com.ch.auction.search.interfaces.api.dto.HourlyTrend
@@ -19,7 +22,8 @@ import org.springframework.stereotype.Service
 @Service
 class AuctionSearchService(
     private val elasticsearchOperations: ElasticsearchOperations,
-    private val elasticsearchClient: ElasticsearchClient
+    private val elasticsearchClient: ElasticsearchClient,
+    private val auctionSearchRepository: AuctionSearchRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -29,25 +33,61 @@ class AuctionSearchService(
     ): Page<AuctionDocument> {
         val boolQueryBuilder = BoolQuery.Builder()
         var hasConditions = false
+        
+        logger.info("=== Search Condition: keyword=${condition.keyword}, status=${condition.status}, category=${condition.category} ===")
+        
+        // PENDING, REJECTED 상태는 일반 사용자에게 노출하지 않음
+        // status 조건이 명시적으로 주어지지 않은 경우에만 적용
+        if (condition.status.isNullOrBlank()) {
+            listOf("PENDING", "REJECTED").forEach { status ->
+                boolQueryBuilder.mustNot(
+                    TermQuery.of { termQuery ->
+                        termQuery.field("status")
+                            .value(status)
+                    }._toQuery()
+                )
+            }
+            logger.info("=== Excluding PENDING and REJECTED status from search ===")
+        }
 
         // 키워드 검색 - title / sellerName
         if (!condition.keyword.isNullOrBlank()) {
             val shouldQueries = mutableListOf<Query>()
+            val keyword = condition.keyword.lowercase()
             
-            // title
+            // title - 완전 일치 검색
             shouldQueries.add(
                 MatchQuery.of { matchQuery ->
                     matchQuery.field("title")
                         .query(condition.keyword)
+                        .boost(3.0f)
+                }._toQuery()
+            )
+            
+            // title - 부분 일치 검색
+            shouldQueries.add(
+                WildcardQuery.of { wildcardQuery ->
+                    wildcardQuery.field("title")
+                        .value("*${keyword}*")
                         .boost(2.0f)
                 }._toQuery()
             )
             
-            // sellerName
+            // sellerName - 완전 일치 검색
             shouldQueries.add(
                 MatchQuery.of { matchQuery ->
                     matchQuery.field("sellerName")
                         .query(condition.keyword)
+                        .boost(1.5f)
+                }._toQuery()
+            )
+            
+            // sellerName - 부분 일치 검색
+            shouldQueries.add(
+                WildcardQuery.of { wildcardQuery ->
+                    wildcardQuery.field("sellerName")
+                        .value("*${keyword}*")
+                        .boost(1.0f)
                 }._toQuery()
             )
             
@@ -73,12 +113,32 @@ class AuctionSearchService(
 
         // 상태 필터
         if (!condition.status.isNullOrBlank()) {
-            boolQueryBuilder.filter(
-                TermQuery.of { termQuery ->
-                    termQuery.field("status")
-                        .value(condition.status)
-                }._toQuery()
-            )
+            // "ENDED"는 종료된 모든 상태(ENDED, COMPLETED, FAILED)를 포함
+            if (condition.status == "ENDED") {
+                val statusQueries = mutableListOf<Query>()
+                listOf("ENDED", "COMPLETED", "FAILED").forEach { status ->
+                    statusQueries.add(
+                        TermQuery.of { termQuery ->
+                            termQuery.field("status")
+                                .value(status)
+                        }._toQuery()
+                    )
+                }
+                
+                boolQueryBuilder.filter(
+                    BoolQuery.of { boolQuery ->
+                        boolQuery.should(statusQueries)
+                            .minimumShouldMatch("1")
+                    }._toQuery()
+                )
+            } else {
+                boolQueryBuilder.filter(
+                    TermQuery.of { termQuery ->
+                        termQuery.field("status")
+                            .value(condition.status)
+                    }._toQuery()
+                )
+            }
             hasConditions = true
         }
 
@@ -100,17 +160,22 @@ class AuctionSearchService(
             hasConditions = true
         }
 
-        val finalQuery = if (hasConditions) {
-            boolQueryBuilder.build()._toQuery()
-        } else {
-            Query.of { query ->
-                query.matchAll { it }
-            }
-        }
+        // mustNot 조건이 있으므로 항상 boolQuery 사용
+        val finalQuery = boolQueryBuilder.build()._toQuery()
+        
+        logger.info("=== Final Query: $finalQuery ===")
 
         val searchQuery = NativeQuery.builder()
             .withQuery(finalQuery)
             .withPageable(pageable)
+            .withSort(
+                SortOptions.of { sort ->
+                    sort.field { field ->
+                        field.field("createdAt")
+                            .order(SortOrder.Desc)
+                    }
+                }
+            )
             .build()
 
         // 검색 실행
@@ -241,6 +306,49 @@ class AuctionSearchService(
                 hourlyRegistrationTrend = emptyList(),
                 averageCurrentPrice = 0.0
             )
+        }
+    }
+    
+    /**
+     * 경매 documents 인덱싱
+     */
+    fun indexAuctions(
+        documents: List<AuctionDocument>
+    ): Int {
+        return try {
+            val savedDocuments = auctionSearchRepository.saveAll(documents)
+            val count = savedDocuments.count()
+            logger.info("Successfully indexed $count auction documents")
+
+            count
+        } catch (e: Exception) {
+            logger.error("Failed to index auction documents", e)
+
+            0
+        }
+    }
+    
+    /**
+     * 모든 인덱스 삭제 후 재생성
+     */
+    fun reindexAll(
+        documents: List<AuctionDocument>
+    ): Int {
+        return try {
+            // 기존 인덱스 삭제
+            auctionSearchRepository.deleteAll()
+            logger.info("Deleted all existing auction documents")
+            
+            // 새로운 문서 인덱싱
+            val savedDocuments = auctionSearchRepository.saveAll(documents)
+            val count = savedDocuments.count()
+            logger.info("Successfully re indexed $count auction documents")
+
+            count
+        } catch (e: Exception) {
+            logger.error("Failed to reindex auction documents", e)
+
+            0
         }
     }
 }

@@ -2,13 +2,12 @@ package com.ch.auction.search.interfaces.internal
 
 import com.ch.auction.common.ApiResponse
 import com.ch.auction.search.application.service.AuctionSearchService
+import com.ch.auction.search.domain.document.AuctionDocument
 import com.ch.auction.search.interfaces.api.dto.AuctionStatsResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 
 @Tag(name = "Internal Search API", description = "내부 서비스 간 통신 - 검색 API")
 @RestController
@@ -28,6 +27,50 @@ class InternalSearchController(
         return ResponseEntity.ok(
             ApiResponse.ok(
                 data = stats
+            )
+        )
+    }
+    
+    @Operation(
+        summary = "경매 데이터 인덱싱",
+        description = "경매 데이터를 Elasticsearch에 인덱싱"
+    )
+    @PostMapping("/index")
+    fun indexAuctions(
+        @RequestBody documents: List<AuctionDocument>
+    ): ResponseEntity<ApiResponse<Map<String, Any>>> {
+        val count = auctionSearchService.indexAuctions(
+            documents = documents
+        )
+        
+        return ResponseEntity.ok(
+            ApiResponse.ok(
+                data = mapOf(
+                    "indexed" to count,
+                    "total" to documents.size
+                )
+            )
+        )
+    }
+    
+    @Operation(
+        summary = "경매 데이터 재인덱싱",
+        description = "기존 인덱스를 삭제하고 새로운 데이터로 재인덱싱"
+    )
+    @PostMapping("/reindex")
+    fun reindexAuctions(
+        @RequestBody documents: List<AuctionDocument>
+    ): ResponseEntity<ApiResponse<Map<String, Any>>> {
+        val count = auctionSearchService.reindexAll(
+            documents = documents
+        )
+        
+        return ResponseEntity.ok(
+            ApiResponse.ok(
+                data = mapOf(
+                    "indexed" to count,
+                    "total" to documents.size
+                )
             )
         )
     }

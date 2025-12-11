@@ -18,10 +18,7 @@ class AdminAuctionController(
     private val adminAuctionService: AdminAuctionService
 ) {
 
-    @Operation(
-        summary = "경매 목록 조회 (판매자 정보 포함)",
-        description = "전체 경매 목록을 조회합니다. Virtual Thread 기반 병렬 처리로 판매자 정보를 함께 조회합니다."
-    )
+    @Operation(summary = "경매 목록 조회", description = "전체 경매 목록을 조회")
     @GetMapping
     fun getAuctions(
         @RequestParam(defaultValue = "0") page: Int,
