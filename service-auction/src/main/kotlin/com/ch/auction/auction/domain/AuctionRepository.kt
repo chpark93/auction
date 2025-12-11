@@ -1,6 +1,7 @@
 package com.ch.auction.auction.domain
 
 import com.ch.auction.auction.application.dto.AuctionRedisDtos
+import java.time.LocalDateTime
 
 interface AuctionRepository {
     /**
@@ -24,6 +25,13 @@ interface AuctionRepository {
     fun getAuctionRedisInfo(
         auctionId: Long
     ): AuctionRedisDtos.AuctionRedisInfo?
+    
+    fun updateCurrentPrice(
+        auctionId: Long,
+        newPrice: Long,
+        newBidderId: Long?,
+        newBidTime: LocalDateTime?
+    )
 
     fun deleteAuctionRedisInfo(
         auctionId: Long

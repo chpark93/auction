@@ -42,6 +42,8 @@ enum class ErrorCode(
     AUCTION_ENDED(HttpStatus.BAD_REQUEST, "Auction is ended"),
     SELF_BIDDING_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "Self bidding is not allowed"),
     NOT_ENOUGH_POINT(HttpStatus.BAD_REQUEST, "Not enough point"),
+    BID_NOT_FOUND(HttpStatus.NOT_FOUND, "Bid not found"),
+    CANCEL_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "Cancel not allowed"),
 
     // Auth
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "Unauthorized"),

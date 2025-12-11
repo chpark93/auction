@@ -24,4 +24,8 @@ object UserClientDtos {
         val reason: String,
         val auctionId: Long? = null
     )
+    
+    data class PointRequest(
+        val amount: Long
+    )
 }

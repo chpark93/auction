@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.*
 
@@ -199,6 +200,30 @@ class AuctionRedisAdapter(
             uniqueBidders = uniqueBidders,
             bidCount = bidCount
         )
+    }
+    
+    override fun updateCurrentPrice(
+        auctionId: Long,
+        newPrice: Long,
+        newBidderId: Long?,
+        newBidTime: LocalDateTime?
+    ) {
+        val key = "$AUCTION_LUA_PREFIX:$auctionId"
+        
+        redisTemplate.opsForHash<String, String>().put(key, "currentPrice", newPrice.toString())
+        
+        if (newBidderId != null) {
+            redisTemplate.opsForHash<String, String>().put(key, "lastBidderId", newBidderId.toString())
+        } else {
+            redisTemplate.opsForHash<String, String>().delete(key, "lastBidderId")
+        }
+        
+        if (newBidTime != null) {
+            val bidTimeMillis = newBidTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            redisTemplate.opsForHash<String, String>().put(key, "lastBidTime", bidTimeMillis.toString())
+        } else {
+            redisTemplate.opsForHash<String, String>().delete(key, "lastBidTime")
+        }
     }
 
     override fun deleteAuctionRedisInfo(

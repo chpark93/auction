@@ -20,6 +20,7 @@ data class AuctionListResponse(
         fun from(
             auction: Auction,
             sellerName: String,
+            currentPrice: Long? = null,
             uniqueBidders: Int = 0
         ): AuctionListResponse {
             return AuctionListResponse(
@@ -27,7 +28,7 @@ data class AuctionListResponse(
                 title = auction.title,
                 sellerName = sellerName,
                 startPrice = auction.startPrice,
-                currentPrice = auction.currentPrice,
+                currentPrice = currentPrice ?: auction.currentPrice,
                 status = auction.status,
                 startTime = auction.startTime,
                 endTime = auction.endTime,

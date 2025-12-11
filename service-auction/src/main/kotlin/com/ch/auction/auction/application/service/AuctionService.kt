@@ -22,7 +22,9 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
+import java.time.Duration
 import java.time.Instant
+import java.time.LocalDateTime
 
 @Service
 class AuctionService(
@@ -31,7 +33,8 @@ class AuctionService(
     private val bidJpaRepository: BidJpaRepository,
     private val sellerInfoCacheRepository: SellerInfoCacheRepository,
     private val userStatusCacheRepository: UserStatusCacheRepository,
-    private val userClient: UserClient
+    private val userClient: UserClient,
+    private val bidCancellationService: BidCancellationService
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -60,14 +63,21 @@ class AuctionService(
             userId = userId
         )
         
-        // 포인트 조회
+        // 사용 가능한 포인트 조회
         val userPoint = try {
-            val response = userClient.getUserPoint(userId)
-            response.data ?: 0L
+            val response = userClient.getUserPoint(
+                userId = userId,
+                auctionId = auctionId  // 재입찰인 경우 기존 금액 제외
+            )
+            val pointInfo = response.data
+            logger.info("User $userId point info for auction $auctionId - Total: ${pointInfo?.totalPoint}, Locked: ${pointInfo?.lockedPoint}, Available: ${pointInfo?.availablePoint}")
+            pointInfo?.availablePoint ?: 0L
         } catch (e: Exception) {
             logger.error("Failed to get user point", e)
             throw BusinessException(ErrorCode.USER_SERVICE_UNAVAILABLE)
         }
+        
+        logger.info("User $userId attempting to bid $amount with available point $userPoint")
 
         val requestTime = Instant.now().toEpochMilli()
 
@@ -93,7 +103,7 @@ class AuctionService(
                     )
                 } catch (e: Exception) {
                     logger.error("Failed to hold point for user $userId", e)
-                    // 포인트 홀드 실패 시에도 입찰은 성공으로 처리 (비동기로 처리하는 것이 좋음)
+                    // 포인트 홀드 실패 시에도 입찰은 성공으로 처리
                 }
                 result.currentPrice
             }
@@ -108,16 +118,19 @@ class AuctionService(
     fun getAuctionCurrentPrice(
         auctionId: Long
     ): CurrentPriceResponse {
-        // DB에서 경매 확인
-        val auction = auctionJpaRepository.findByIdOrNull(auctionId)
-            ?: throw BusinessException(ErrorCode.AUCTION_NOT_FOUND)
-        
-        // Redis 정보 조회 (없으면 로드)
-        var info = auctionRepository.getAuctionRedisInfo(auctionId)
+        // Redis 정보 조회
+        var info = auctionRepository.getAuctionRedisInfo(
+            auctionId = auctionId
+        )
+
         if (info == null) {
-            auctionRepository.loadAuctionToRedis(auctionId)
-            info = auctionRepository.getAuctionRedisInfo(auctionId)
-                ?: throw BusinessException(ErrorCode.AUCTION_NOT_FOUND)
+            auctionRepository.loadAuctionToRedis(
+                auctionId = auctionId
+            )
+
+            info = auctionRepository.getAuctionRedisInfo(
+                auctionId = auctionId
+            ) ?: throw BusinessException(ErrorCode.AUCTION_NOT_FOUND)
         }
 
         return CurrentPriceResponse(
@@ -163,9 +176,11 @@ class AuctionService(
         return auctions.map { auction ->
             val sellerName = getSellerName(auction.sellerId)
             val redisInfo = auctionRepository.getAuctionRedisInfo(auction.id!!)
+            
             AuctionListResponse.from(
                 auction = auction,
                 sellerName = sellerName,
+                currentPrice = redisInfo?.currentPrice ?: auction.currentPrice,
                 uniqueBidders = redisInfo?.uniqueBidders ?: 0
             )
         }
@@ -273,12 +288,106 @@ class AuctionService(
         }
 
         return bids.map { bid ->
-            val userEmail = usersMap[bid.userId]?.email ?: "None"
+            val user = usersMap[bid.userId]
+            val userEmail = user?.email ?: "Unknown"
+            val userNickname = user?.nickname
 
             BidHistoryResponse.from(
                 bid = bid,
-                userEmail = userEmail
+                userEmail = userEmail,
+                userNickname = userNickname
             )
         }
+    }
+    
+    /**
+     * 입찰 포기
+     */
+    fun cancelBid(
+        auctionId: Long,
+        userId: Long,
+        reason: String?
+    ): Map<String, Any> {
+        val result = bidCancellationService.cancelBid(
+            auctionId = auctionId,
+            userId = userId,
+            reason = reason
+        )
+        
+        return mapOf(
+            "success" to result.success,
+            "refundAmount" to result.refundAmount,
+            "fee" to result.fee,
+            "reason" to result.reason
+        )
+    }
+    
+    /**
+     * 사용자 입찰 중인 경매 목록
+     */
+    fun getMyBiddingAuctions(
+        userId: Long
+    ): Map<String, Any> {
+        // 사용자의 활성 입찰 조회
+        val activeBids = bidJpaRepository.findByUserIdAndStatusOrderByBidTimeDesc(
+            userId = userId,
+            status = com.ch.auction.auction.domain.BidStatus.ACTIVE,
+            pageable = PageRequest.of(0, 100)
+        )
+        
+        if (activeBids.isEmpty()) {
+            return mapOf(
+                "totalLockedPoint" to 0L,
+                "biddingCount" to 0,
+                "auctions" to emptyList<Any>()
+            )
+        }
+        
+        val latestBidsByAuction = activeBids
+            .groupBy { it.auctionId }
+            .mapValues { (_, bids) -> bids.maxByOrNull { it.bidTime }!! }
+        
+        val auctionIds = latestBidsByAuction.keys.toList()
+        val auctions = auctionJpaRepository.findAllById(auctionIds)
+        val auctionMap = auctions.associateBy { it.id!! }
+        
+        val biddingAuctions = latestBidsByAuction.mapNotNull { (auctionId, bid) ->
+            val auction = auctionMap[auctionId] ?: return@mapNotNull null
+            val redisInfo = auctionRepository.getAuctionRedisInfo(auctionId)
+            
+            val isHighestBidder = redisInfo?.lastBidderId == userId
+            val currentPrice = redisInfo?.currentPrice ?: auction.currentPrice
+            
+            val now = LocalDateTime.now()
+            val bidAge = Duration.between(bid.bidTime, now)
+            val timeUntilEnd = Duration.between(now, auction.endTime)
+            
+            val canCancel = auction.status == AuctionStatus.ONGOING && 
+                            timeUntilEnd.toMinutes() >= 10
+            
+            mapOf(
+                "auctionId" to auction.id!!,
+                "auctionTitle" to auction.title,
+                "auctionStatus" to auction.status.name,
+                "currentPrice" to currentPrice,
+                "myBidAmount" to bid.amount,
+                "myBidStatus" to bid.status.name,
+                "myBidTime" to bid.bidTime.toString(),
+                "isHighestBidder" to isHighestBidder,
+                "lockedPoint" to bid.amount,
+                "endTime" to auction.endTime.toString(),
+                "canCancel" to canCancel,
+                "bidAge" to bidAge.toMinutes()
+            )
+        }
+        
+        // locked 포인트 계산 (경매별 최신 입찰 금액만 합산)
+        val totalLockedPoint = latestBidsByAuction.values.sumOf { it.amount }
+        
+        return mapOf(
+            "totalLockedPoint" to totalLockedPoint,
+            "biddingCount" to activeBids.size,
+            "auctions" to biddingAuctions
+        )
     }
 }

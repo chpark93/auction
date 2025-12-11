@@ -27,6 +27,10 @@ class Bid private constructor(
     @Column(nullable = false)
     val sequence: Long,
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    var status: BidStatus = BidStatus.ACTIVE,
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null
@@ -55,5 +59,15 @@ class Bid private constructor(
 
     fun delete() {
         this.deleted = true
+    }
+    
+    fun cancel() {
+        this.status = BidStatus.CANCELLED
+    }
+    
+    fun markAsOutbid() {
+        if (this.status == BidStatus.ACTIVE) {
+            this.status = BidStatus.OUTBID
+        }
     }
 }

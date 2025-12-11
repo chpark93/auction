@@ -33,12 +33,19 @@ class UserService(
         val pageable = PageRequest.of(page, size)
         
         val usersPage = if (status != null) {
-            userRepository.findAllByStatus(status, pageable)
+            userRepository.findAllByStatus(
+                status = status,
+                pageable = pageable
+            )
         } else {
             userRepository.findAll(pageable)
         }
         
-        val userResponses = usersPage.content.map { UserResponse.from(it) }
+        val userResponses = usersPage.content.map {
+            UserResponse.from(
+                user = it
+            )
+        }
         
         return UserListResponse(
             content = userResponses,
@@ -75,15 +82,41 @@ class UserService(
     
     @Transactional(readOnly = true)
     fun getUserPoint(
-        userId: Long
+        userId: Long,
+        auctionId: Long? = null
     ): PointDTOs.PointResponse {
         val user = userRepository.findById(userId)
             .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
+        
+        // 실제 PENDING 트랜잭션 기반으로 lockedPoint 계산
+        val actualLockedPoint = pointTransactionRepository
+            .findByUserIdAndStatusAndType(
+                userId = userId,
+                status = TransactionStatus.PENDING,
+                type = TransactionType.HOLD
+            )
+            .sumOf { it.amount }
+        
+        // 재입찰인 경우: 해당 경매의 기존 HOLD 금액을 제외한 available point 계산
+        val adjustedAvailable = if (auctionId != null) {
+            val existingHolds = pointTransactionRepository.findByAuctionIdAndUserIdAndStatusAndType(
+                auctionId = auctionId,
+                userId = userId,
+                status = TransactionStatus.PENDING,
+                type = TransactionType.HOLD
+            )
+            val existingHoldAmount = existingHolds.sumOf { it.amount }
 
+            (user.point - actualLockedPoint) + existingHoldAmount  // 기존 입찰 금액을 더해서 반환
+        } else {
+            user.point - actualLockedPoint
+        }
+        
         return PointDTOs.PointResponse(
             userId = user.id!!,
             totalPoint = user.point,
-            availablePoint = user.point
+            lockedPoint = actualLockedPoint,
+            availablePoint = adjustedAvailable
         )
     }
 
@@ -157,7 +190,8 @@ class UserService(
         return PointDTOs.PointResponse(
             userId = user.id!!,
             totalPoint = user.point,
-            availablePoint = user.point
+            lockedPoint = user.lockedPoint,
+            availablePoint = user.availablePoint
         )
     }
 
@@ -176,7 +210,8 @@ class UserService(
         return PointDTOs.PointResponse(
             userId = user.id!!,
             totalPoint = user.point,
-            availablePoint = user.point
+            lockedPoint = user.lockedPoint,
+            availablePoint = user.availablePoint
         )
     }
     
@@ -200,8 +235,24 @@ class UserService(
         val user = userRepository.findById(userId)
             .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
         
-        // 입찰 시 포인트 차감
-        user.usePoint(
+        // 재입찰인 경우: 같은 경매의 기존 HOLD 트랜잭션 해제
+        if (auctionId != null) {
+            val existingHolds = pointTransactionRepository.findByAuctionIdAndUserIdAndStatusAndType(
+                auctionId = auctionId,
+                userId = userId,
+                status = TransactionStatus.PENDING,
+                type = TransactionType.HOLD
+            )
+            
+            existingHolds.forEach { existingHold ->
+                // 기존 lock 해제
+                user.releasePoint(existingHold.amount)
+                existingHold.cancel()
+            }
+        }
+        
+        // 새로운 금액으로 포인트 홀드 (lockedPoint만 증가, point는 유지)
+        user.holdPoint(
             amount = amount
         )
         
@@ -241,8 +292,8 @@ class UserService(
             holdTransactions.forEach { it.complete() }
         }
         
-        // 입찰 실패 -> 포인트 환불
-        user.chargePoint(
+        // 유찰 -> 포인트 lock 해제 (lockedPoint만 감소, point는 유지)
+        user.releasePoint(
             amount = amount
         )
         
@@ -274,5 +325,35 @@ class UserService(
             userId = userId,
             nickname = nickname
         ))
+    }
+    
+    /**
+     * 포인트 직접 차감 (수수료 등)
+     * lockedPoint와 무관 -> 실제 포인트 차감
+     */
+    @Transactional
+    fun deductPoint(
+        userId: Long,
+        amount: Long,
+        reason: String
+    ) {
+        val user = userRepository.findById(userId)
+            .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
+        
+        user.usePoint(
+            amount = amount
+        )
+        
+        // USE 트랜잭션
+        pointTransactionRepository.save(
+            PointTransaction.create(
+                userId = userId,
+                type = TransactionType.USE,
+                amount = amount,
+                balanceAfter = user.point,
+                reason = reason,
+                status = TransactionStatus.COMPLETED
+            )
+        )
     }
 }

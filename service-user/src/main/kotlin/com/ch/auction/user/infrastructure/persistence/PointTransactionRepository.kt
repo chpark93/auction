@@ -21,6 +21,12 @@ interface PointTransactionRepository : JpaRepository<PointTransaction, Long> {
         type: TransactionType
     ): List<PointTransaction>
     
+    fun findByUserIdAndStatusAndType(
+        userId: Long,
+        status: TransactionStatus,
+        type: TransactionType
+    ): List<PointTransaction>
+    
     fun findByAuctionIdAndStatus(
         auctionId: Long,
         status: TransactionStatus

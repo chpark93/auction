@@ -11,7 +11,7 @@ object PointDTOs {
         val userId: Long,
         val totalPoint: Long,
         val lockedPoint: Long = 0L,
-        val availablePoint: Long
+        val availablePoint: Long = 0L
     )
     
     data class HoldPointRequest(

@@ -138,10 +138,20 @@ const UserAPI = {
         if (!user) return Promise.reject(new Error('Not logged in'));
         return api.get(`/api/v1/users/${user.userId}`);
     },
+    getMyPoint: () => {
+        const user = getCurrentUser();
+        if (!user) return Promise.reject(new Error('Not logged in'));
+        return api.get(`/api/v1/users/${user.userId}/points`);
+    },
     chargePoint: (amount) => {
         const user = getCurrentUser();
         if (!user) return Promise.reject(new Error('Not logged in'));
         return api.post(`/api/v1/users/${user.userId}/points/charge`, { amount });
+    },
+    getPointHistory: (page = 0, size = 20) => {
+        const user = getCurrentUser();
+        if (!user) return Promise.reject(new Error('Not logged in'));
+        return api.get(`/api/v1/users/${user.userId}/points/history`, { params: { page, size } });
     }
 };
 
@@ -158,6 +168,16 @@ const AuctionAPI = {
             userId: user.userId, 
             amount 
         });
+    },
+    cancelBid: (auctionId, reason = null) => {
+        const user = getCurrentUser();
+        if (!user) return Promise.reject(new Error('Not logged in'));
+        return api.post(`/api/v1/auctions/${auctionId}/cancel-bid?userId=${user.userId}`, { reason });
+    },
+    getMyBidding: () => {
+        const user = getCurrentUser();
+        if (!user) return Promise.reject(new Error('Not logged in'));
+        return api.get(`/api/v1/auctions/users/${user.userId}/bidding`);
     },
     create: (data) => api.post('/api/v1/seller/auctions', data)
 };

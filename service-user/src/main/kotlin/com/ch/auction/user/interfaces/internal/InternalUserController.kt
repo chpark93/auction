@@ -57,14 +57,14 @@ class InternalUserController(
     @GetMapping("/batch")
     fun getUsersBatch(
         @RequestParam ids: List<Long>
-    ): ResponseEntity<ApiResponse<Map<Long, UserResponse>>> {
+    ): ResponseEntity<ApiResponse<List<UserResponse>>> {
         val users = userService.getUsersBatch(
             userIds = ids
         )
         
         return ResponseEntity.ok(
             ApiResponse.ok(
-                data = users
+                data = users.values.toList()
             )
         )
     }
@@ -148,16 +148,20 @@ class InternalUserController(
         )
     }
     
-    @Operation(summary = "포인트 조회", description = "회원 포인트 조회")
+    @Operation(summary = "포인트 정보 조회", description = "회원 포인트 정보 조회 (재입찰 시 auctionId 전달)")
     @GetMapping("/{userId}/points")
-    fun getUserPointAmount(
-        @PathVariable userId: Long
-    ): ResponseEntity<ApiResponse<Long>> {
-        val point = userService.getUserPointAmount(userId)
+    fun getUserPoint(
+        @PathVariable userId: Long,
+        @RequestParam(required = false) auctionId: Long?
+    ): ResponseEntity<ApiResponse<PointDTOs.PointResponse>> {
+        val response = userService.getUserPoint(
+            userId = userId,
+            auctionId = auctionId
+        )
         
         return ResponseEntity.ok(
             ApiResponse.ok(
-                data = point
+                data = response
             )
         )
     }
@@ -189,6 +193,22 @@ class InternalUserController(
             amount = request.amount,
             reason = request.reason,
             auctionId = request.auctionId
+        )
+        
+        return ResponseEntity.ok(ApiResponse.ok())
+    }
+    
+    @Operation(summary = "포인트 차감", description = "수수료 등 포인트 차감")
+    @PostMapping("/{userId}/points/deduct")
+    fun deductPoint(
+        @PathVariable userId: Long,
+        @RequestParam amount: Long,
+        @RequestParam reason: String
+    ): ResponseEntity<ApiResponse<Unit>> {
+        userService.deductPoint(
+            userId = userId,
+            amount = amount,
+            reason = reason
         )
         
         return ResponseEntity.ok(ApiResponse.ok())

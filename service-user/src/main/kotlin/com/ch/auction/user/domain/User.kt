@@ -51,6 +51,13 @@ class User private constructor(
     var point: Long = point
         private set
 
+    @Column(nullable = false)
+    var lockedPoint: Long = 0
+        private set
+
+    val availablePoint: Long
+        get() = point - lockedPoint
+
     @Column
     var name: String? = name
         private set
@@ -124,6 +131,40 @@ class User private constructor(
             throw BusinessException(ErrorCode.POINT_NOT_ENOUGH)
         }
         this.point = this.point.minus(amount).coerceAtLeast(0)
+    }
+
+    /**
+     * 입찰 시 포인트 홀드 (실제 차감 없이 locked)
+     */
+    fun holdPoint(
+        amount: Long
+    ) {
+        if (availablePoint < amount) {
+            throw BusinessException(ErrorCode.POINT_NOT_ENOUGH)
+        }
+        this.lockedPoint += amount
+    }
+
+    /**
+     * 유찰 시 포인트 릴리즈 (locked 해제)
+     */
+    fun releasePoint(
+        amount: Long
+    ) {
+        this.lockedPoint = (this.lockedPoint - amount).coerceAtLeast(0)
+    }
+
+    /**
+     * 낙찰 시 포인트 확정 (실제 차감 + locked 해제)
+     */
+    fun confirmPoint(
+        amount: Long
+    ) {
+        if (this.point < amount) {
+            throw BusinessException(ErrorCode.POINT_NOT_ENOUGH)
+        }
+        this.point -= amount
+        this.lockedPoint = (this.lockedPoint - amount).coerceAtLeast(0)
     }
 
     fun addAddress(

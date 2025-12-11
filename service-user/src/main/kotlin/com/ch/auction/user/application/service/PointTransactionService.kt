@@ -38,14 +38,20 @@ class PointTransactionService(
 
         pendingTransactions.forEach { holdTransaction ->
             if (holdTransaction.userId == winnerId) {
+                // 낙찰자: HOLD -> USE (실제 포인트 차감 + lock 해제)
                 holdTransaction.complete()
+                
+                val user = userRepository.findById(winnerId)
+                    .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
+                
+                user.confirmPoint(holdTransaction.amount)
                 
                 pointTransactionRepository.save(
                     PointTransaction.create(
                         userId = winnerId,
                         type = TransactionType.USE,
                         amount = holdTransaction.amount,
-                        balanceAfter = getUserBalance(winnerId),
+                        balanceAfter = user.point,
                         reason = "경매 낙찰 (경매 ID: $auctionId)",
                         auctionId = auctionId,
                         status = TransactionStatus.COMPLETED
@@ -54,7 +60,7 @@ class PointTransactionService(
                 
                 logger.info("Point confirmed for winner $winnerId: ${holdTransaction.amount}")
             } else {
-                // 다른 입찰자: HOLD -> RELEASE (환불)
+                // 다른 입찰자: HOLD -> RELEASE (lock 해제만)
                 releaseHoldPoint(
                     auctionId = auctionId,
                     holdTransaction = holdTransaction
@@ -108,7 +114,8 @@ class PointTransactionService(
         val user = userRepository.findById(holdTransaction.userId)
             .orElseThrow { BusinessException(ErrorCode.USER_NOT_FOUND) }
 
-        user.chargePoint(holdTransaction.amount)
+        // 락만 해제 (point는 그대로 유지)
+        user.releasePoint(holdTransaction.amount)
 
         pointTransactionRepository.save(
             PointTransaction.create(

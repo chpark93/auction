@@ -23,23 +23,26 @@ class BidNotificationListener(
     ) {
         logger.info("Broadcasting bid success event for auction ${event.auctionId}")
         
-        val userEmail = try {
+        val (userEmail, userNickname) = try {
             val response = userClient.getUserInfo(
                 userId = event.userId
             )
 
-            response.data?.email ?: "None"
+            Pair(response.data?.email ?: "Unknown", response.data?.nickname)
         } catch (e: Exception) {
             logger.error("Failed to fetch user info for bid notification", e)
 
-            "None"
+            Pair("Unknown", null)
         }
         
         val bidUpdate = mapOf(
             "auctionId" to event.auctionId,
+            "userId" to event.userId,
             "currentPrice" to event.amount,
+            "amount" to event.amount,
             "bidderId" to event.userId,
             "bidderEmail" to userEmail,
+            "bidderNickname" to userNickname,
             "bidTime" to event.bidTime.toString(),
             "sequence" to event.sequence
         )

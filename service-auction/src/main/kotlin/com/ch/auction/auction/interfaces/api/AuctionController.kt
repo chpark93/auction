@@ -1,12 +1,7 @@
 package com.ch.auction.auction.interfaces.api
 
 import com.ch.auction.auction.application.service.AuctionService
-import com.ch.auction.auction.interfaces.api.dto.AuctionListResponse
-import com.ch.auction.auction.interfaces.api.dto.AuctionResponse
-import com.ch.auction.auction.interfaces.api.dto.BidHistoryResponse
-import com.ch.auction.auction.interfaces.api.dto.BidRequest
-import com.ch.auction.auction.interfaces.api.dto.BidResponse
-import com.ch.auction.auction.interfaces.api.dto.CurrentPriceResponse
+import com.ch.auction.auction.interfaces.api.dto.*
 import com.ch.auction.common.ApiResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -108,6 +103,40 @@ class AuctionController(
         return ResponseEntity.ok(
             ApiResponse.ok(
                 data = bidHistory
+            )
+        )
+    }
+    
+    @Operation(summary = "입찰 포기", description = "사용자 입찰 포기")
+    @PostMapping("/{id}/cancel-bid")
+    fun cancelBid(
+        @PathVariable id: Long,
+        @RequestBody request: CancelBidRequest,
+        @RequestParam userId: Long
+    ): ResponseEntity<ApiResponse<Map<String, Any>>> {
+        val result = auctionService.cancelBid(
+            auctionId = id,
+            userId = userId,
+            reason = request.reason
+        )
+        
+        return ResponseEntity.ok(
+            ApiResponse.ok(
+                data = result
+            )
+        )
+    }
+    
+    @Operation(summary = "사용자 입찰 중 경매 목록", description = "사용자가 입찰 중인 경매 목록 조회")
+    @GetMapping("/users/{userId}/bidding")
+    fun getMyBiddingAuctions(
+        @PathVariable userId: Long
+    ): ResponseEntity<ApiResponse<Map<String, Any>>> {
+        val result = auctionService.getMyBiddingAuctions(userId)
+        
+        return ResponseEntity.ok(
+            ApiResponse.ok(
+                data = result
             )
         )
     }

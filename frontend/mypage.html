@@ -162,8 +162,8 @@
                 <div class="tab-content" id="myTabContent">
                     <!-- 입찰 내역 -->
                     <div class="tab-pane fade show active" id="bid" role="tabpanel">
-                        <div class="profile-card">
-                            <p class="text-center text-muted">입찰 내역이 없습니다.</p>
+                        <div id="biddingList" class="profile-card">
+                            <p class="text-center text-muted">로딩 중...</p>
                         </div>
                     </div>
                     <!-- 낙찰 내역 -->
@@ -234,29 +234,31 @@
         // 사용자 정보 로드
         async function loadUserInfo() {
             try {
-                const response = await UserAPI.getMyInfo();
+                const userResponse = await UserAPI.getMyInfo();
                 
-                if (response.data.success) {
-                    const user = response.data.data;
+                if (userResponse.data.success) {
+                    const user = userResponse.data.data;
                     
                     // 프로필 정보
                     document.getElementById('userNickname').textContent = user.nickname || '닉네임';
                     document.getElementById('userEmail').textContent = user.email || '-';
                     document.getElementById('userRole').textContent = user.role || 'USER';
                     
-                    // 포인트 정보
-                    const totalPoint = user.totalPoint || 0;
-                    const lockedPoint = user.lockedPoint || 0;
-                    const availablePoint = user.availablePoint || (totalPoint - lockedPoint);
+                    // 포인트 정보 별도 조회
+                    const pointResponse = await UserAPI.getMyPoint();
                     
-                    document.getElementById('totalPoint').textContent = formatPrice(totalPoint);
-                    document.getElementById('availablePoint').textContent = formatPrice(availablePoint);
-                    document.getElementById('lockedPoint').textContent = formatPrice(lockedPoint);
+                    if (pointResponse.data.success) {
+                        const pointData = pointResponse.data.data;
+                        const totalPoint = pointData.totalPoint || 0;
+                        const lockedPoint = pointData.lockedPoint || 0;
+                        const availablePoint = pointData.availablePoint || 0;
+                        
+                        document.getElementById('totalPoint').textContent = formatPrice(totalPoint);
+                        document.getElementById('availablePoint').textContent = formatPrice(availablePoint);
+                        document.getElementById('lockedPoint').textContent = formatPrice(lockedPoint);
+                    }
                     
-                    // 통계 (임시 데이터)
-                    document.getElementById('bidCount').textContent = '0';
-                    document.getElementById('winCount').textContent = '0';
-                    document.getElementById('sellCount').textContent = '0';
+                    // 통계는 loadBiddingAuctions()에서 업데이트
                 }
             } catch (error) {
                 console.error('Failed to load user info:', error);
@@ -315,7 +317,82 @@
         // 페이지 로드 시 초기화
         window.addEventListener('DOMContentLoaded', () => {
             loadUserInfo();
+            loadBiddingAuctions();
         });
+        
+        // 입찰 중인 경매 목록 조회
+        async function loadBiddingAuctions() {
+            try {
+                const response = await AuctionAPI.getMyBidding();
+                
+                if (response.data.success) {
+                    const data = response.data.data;
+                    const container = document.getElementById('biddingList');
+                    
+                    // 통계 업데이트 (전체 입찰 횟수)
+                    document.getElementById('bidCount').textContent = data.biddingCount || 0;
+                    
+                    if (!data.auctions || data.auctions.length === 0) {
+                        container.innerHTML = '<p class="text-center text-muted">입찰 중인 경매가 없습니다.</p>';
+                        return;
+                    }
+                    
+                    // 목록 렌더링
+                    container.innerHTML = data.auctions.map(auction => `
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">${auction.auctionTitle}</h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>현재가:</strong> ${formatPrice(auction.currentPrice)}</p>
+                                        <p class="mb-1"><strong>내 입찰가:</strong> ${formatPrice(auction.myBidAmount)}</p>
+                                        <p class="mb-1">
+                                            ${auction.isHighestBidder 
+                                                ? '<span class="badge bg-success">최고 입찰자</span>' 
+                                                : '<span class="badge bg-secondary">밀림</span>'}
+                                        </p>
+                                    </div>
+                                    <div class="col-md-6 text-end">
+                                        <p class="mb-1"><small class="text-muted">종료: ${new Date(auction.endTime).toLocaleString()}</small></p>
+                                        <button class="btn btn-sm btn-primary" onclick="location.href='detail.html?id=${auction.auctionId}'">
+                                            상세보기
+                                        </button>
+                                        ${auction.canCancel 
+                                            ? `<button class="btn btn-sm btn-danger" onclick="cancelBid(${auction.auctionId})">입찰 포기</button>` 
+                                            : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load bidding auctions:', error);
+            }
+        }
+        
+        // 입찰 포기
+        async function cancelBid(auctionId) {
+            if (!confirm('정말 입찰을 포기하시겠습니까? 수수료가 발생할 수 있습니다.')) {
+                return;
+            }
+            
+            try {
+                const response = await AuctionAPI.cancelBid(auctionId);
+                
+                if (response.data.success) {
+                    const result = response.data.data;
+                    alert(`입찰 포기 완료\n환불액: ${formatPrice(result.refundAmount)}\n수수료: ${formatPrice(result.fee)}`);
+                    loadBiddingAuctions();
+                    loadUserInfo();
+                } else {
+                    alert(response.data.error?.message || '입찰 포기에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('Cancel bid error:', error);
+                alert(error.response?.data?.error?.message || '입찰 포기에 실패했습니다.');
+            }
+        }
     </script>
 </body>
 </html>

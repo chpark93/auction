@@ -232,6 +232,21 @@
                 loadCurrentPrice();
             });
             
+            // 입찰 포기 이벤트 수신
+            eventSource.addEventListener('bid-cancelled', (event) => {
+                const data = JSON.parse(event.data);
+                console.log('🔔 Received bid cancelled:', data);
+                
+                // 현재가 업데이트
+                if (data.currentPrice) {
+                    updateCurrentPrice(data.currentPrice);
+                }
+                
+                // 입찰 내역 새로고침
+                loadBidHistory();
+                loadCurrentPrice();
+            });
+            
             // 에러 처리
             eventSource.onerror = (error) => {
                 console.error('❌ SSE connection error:', error);
@@ -289,15 +304,33 @@
                     if (bids.length > 0) {
                         history.innerHTML = ''; // 기존 메시지 제거
                         
+                        const currentUser = getCurrentUser();
+                        
                         bids.forEach(bid => {
                             const bidItem = document.createElement('div');
                             bidItem.className = 'bid-item';
+                            
+                            // 상태 표시
+                            let statusBadge = '';
+                            if (bid.status === 'CANCELLED') {
+                                statusBadge = '<span class="badge bg-danger ms-2">입찰 포기</span>';
+                            } else if (bid.status === 'OUTBID') {
+                                statusBadge = '<span class="badge bg-secondary ms-2">밀림</span>';
+                            }
+                            
+                            // 본인 표시
+                            const isMe = currentUser && bid.userId === currentUser.userId;
+                            const userDisplay = isMe 
+                                ? `<span class="badge bg-primary">Me</span> ${bid.userNickname || bid.userEmail}`
+                                : (bid.userNickname || bid.userEmail || '알 수 없음');
+                            
                             bidItem.innerHTML = `
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <strong>${formatPrice(bid.amount)}</strong>
+                                        ${statusBadge}
                                         <br>
-                                        <small class="text-muted">${bid.userEmail || '알 수 없음'}</small>
+                                        <small class="text-muted">${userDisplay}</small>
                                     </div>
                                     <small class="text-muted">${formatDate(bid.bidTime)}</small>
                                 </div>
@@ -345,6 +378,12 @@
                 history.innerHTML = '';
             }
             
+            const currentUser = getCurrentUser();
+            const isMe = currentUser && bidData.userId === currentUser.userId;
+            const userDisplay = isMe 
+                ? `<span class="badge bg-primary">Me</span> ${bidData.bidderNickname || bidData.bidderEmail}`
+                : (bidData.bidderNickname || bidData.bidderEmail || '알 수 없음');
+            
             const bidItem = document.createElement('div');
             bidItem.className = 'bid-item';
             bidItem.innerHTML = `
@@ -352,7 +391,7 @@
                     <div>
                         <strong>${formatPrice(bidData.currentPrice)}</strong>
                         <br>
-                        <small class="text-muted">${bidData.bidderEmail || '알 수 없음'}</small>
+                        <small class="text-muted">${userDisplay}</small>
                     </div>
                     <small class="text-muted">${formatDate(new Date())}</small>
                 </div>
