@@ -3,25 +3,22 @@ package com.ch.auction.admin.application.service
 import com.ch.auction.admin.infrastructure.client.AuctionClient
 import com.ch.auction.admin.infrastructure.client.UserClient
 import com.ch.auction.admin.infrastructure.client.dto.AuctionClientDtos
-import com.ch.auction.admin.infrastructure.client.dto.UserClientDtos
 import com.ch.auction.admin.interfaces.api.dto.AdminAuctionListResponse
 import com.ch.auction.admin.interfaces.api.dto.AdminAuctionResponse
 import com.ch.auction.common.ErrorCode
 import com.ch.auction.exception.BusinessException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.Executors
 
 @Service
 class AdminAuctionService(
     private val auctionClient: AuctionClient,
     private val userClient: UserClient
 ) {
-    private val virtualExecutor = Executors.newVirtualThreadPerTaskExecutor()
     private val logger = LoggerFactory.getLogger(javaClass)
+
     /**
-     * 경매 목록 조회 (기본)
+     * 경매 목록 조회
      */
     fun getAuctions(
         page: Int = 0,
@@ -44,7 +41,7 @@ class AdminAuctionService(
     }
     
     /**
-     * 경매 목록 조회
+     * 경매 목록 조회 Batch API
      */
     fun getAuctionsWithSellerInfo(
         page: Int = 0,
@@ -73,29 +70,16 @@ class AdminAuctionService(
             )
         }
         
-        logger.info("Fetched ${auctions.size} auctions, starting parallel seller info fetch")
+        val sellerIds = auctions.map { it.sellerId }.distinct()
+        logger.info("Fetched ${auctions.size} auctions, fetching ${sellerIds.size} unique sellers using Batch API")
 
-        val sellerFutures = auctions.map { auction ->
-            CompletableFuture.supplyAsync({
-                try {
-                    val userResponse = userClient.getUser(
-                        userId = auction.sellerId
-                    )
-
-                    auction.sellerId to userResponse.data
-                } catch (e: Exception) {
-                    logger.warn("Failed to fetch user ${auction.sellerId}: ${e.message}")
-                    auction.sellerId to null
-                }
-            }, virtualExecutor)
-        }
-        
-        // CompletableFuture 완료 대기
         val sellerInfoMap = try {
-            CompletableFuture.allOf(*sellerFutures.toTypedArray()).join()
-            sellerFutures.associate { it.join() }
+            val batchResponse = userClient.getUsersBatch(
+                ids = sellerIds
+            )
+            batchResponse.data ?: emptyMap()
         } catch (e: Exception) {
-            logger.error("Error while fetching seller info", e)
+            logger.error("Failed to fetch sellers in batch: ${e.message}", e)
             emptyMap()
         }
         
@@ -120,7 +104,7 @@ class AdminAuctionService(
         }
         
         val elapsedTime = System.currentTimeMillis() - startTime
-        logger.info("Fetched ${auctions.size} auctions with seller info in ${elapsedTime}ms using Virtual Threads")
+        logger.info("✅ Fetched ${auctions.size} auctions with seller info in ${elapsedTime}ms using Batch API (1 request for ${sellerIds.size} users)")
         
         return AdminAuctionListResponse(
             content = enrichedAuctions,

@@ -22,7 +22,6 @@ class AdminDashboardService(
     
     /**
      * 대시보드 통계 조회
-     * 각각 서비스의 데이터를 병렬로 조회하여 조합
      */
     fun getDashboardStats(): DashboardResponse {
         val startTime = System.currentTimeMillis()
@@ -36,19 +35,6 @@ class AdminDashboardService(
                 )
             } catch (e: Exception) {
                 logger.warn("Failed to fetch users stats: ${e.message}")
-                null
-            }
-        }, virtualExecutor)
-        
-        val auctionsFuture = CompletableFuture.supplyAsync({
-            try {
-                auctionClient.getAuctions(
-                    page = 0,
-                    size = 1,
-                    status = null
-                )
-            } catch (e: Exception) {
-                logger.warn("Failed to fetch auctions stats: ${e.message}")
                 null
             }
         }, virtualExecutor)
@@ -79,11 +65,11 @@ class AdminDashboardService(
             }
         }, virtualExecutor)
         
-        val searchStatsFuture = CompletableFuture.supplyAsync({
+        val elasticsearchStatsFuture = CompletableFuture.supplyAsync({
             try {
                 searchClient.getStats().data
             } catch (e: Exception) {
-                logger.warn("Failed to fetch search stats: ${e.message}")
+                logger.warn("Failed to fetch Elasticsearch stats: ${e.message}")
                 null
             }
         }, virtualExecutor)
@@ -91,29 +77,31 @@ class AdminDashboardService(
         // CompletableFuture 완료 대기
         CompletableFuture.allOf(
             usersFuture,
-            auctionsFuture,
             pendingAuctionsFuture,
             settlementsFuture,
-            searchStatsFuture
+            elasticsearchStatsFuture
         ).join()
         
-        // 조합
         val usersResponse = usersFuture.join()
-        val auctionsResponse = auctionsFuture.join()
         val pendingAuctionsResponse = pendingAuctionsFuture.join()
         val settlementsResponse = settlementsFuture.join()
-        val searchStats = searchStatsFuture.join()
+        val esStats = elasticsearchStatsFuture.join()
         
         val elapsedTime = System.currentTimeMillis() - startTime
-        logger.info("Fetched dashboard stats in ${elapsedTime}ms using Virtual Threads (5 parallel calls)")
+        logger.info("Fetched dashboard stats in ${elapsedTime}ms (Elasticsearch: primary source)")
         
         return DashboardResponse(
             totalUsers = usersResponse?.data?.totalElements ?: 0L,
-            totalAuctions = auctionsResponse?.data?.totalElements ?: 0L,
+            totalAuctions = esStats?.totalAuctions ?: 0L,
             pendingAuctions = pendingAuctionsResponse?.data?.totalElements ?: 0L,
+            ongoingAuctions = esStats?.ongoingAuctions ?: 0L,
+            completedAuctions = esStats?.completedAuctions ?: 0L,
             totalSettlements = settlementsResponse?.data?.totalElements ?: 0L,
-            ongoingAuctions = searchStats?.ongoingAuctions ?: 0L,
-            todayBids = searchStats?.todayBids ?: 0L
+            averageCurrentPrice = esStats?.averageCurrentPrice ?: 0.0,
+            statusDistribution = esStats?.statusDistribution ?: emptyMap(),
+            categoryDistribution = esStats?.categoryDistribution ?: emptyMap(),
+            hourlyRegistrationTrend = esStats?.hourlyRegistrationTrend ?: emptyList(),
+            todayBids = esStats?.todayBids ?: 0L
         )
     }
 }

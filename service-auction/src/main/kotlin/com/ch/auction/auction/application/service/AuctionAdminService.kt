@@ -10,6 +10,8 @@ import com.ch.auction.auction.interfaces.api.dto.admin.AuctionUpdateRequest
 import com.ch.auction.common.ErrorCode
 import com.ch.auction.exception.BusinessException
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -23,6 +25,33 @@ class AuctionAdminService(
     private val objectMapper: ObjectMapper
 ) {
 
+    @Transactional(readOnly = true)
+    fun getAuctions(
+        page: Int,
+        size: Int,
+        status: AuctionStatus?
+    ): Page<AuctionAdminResponse> {
+        val pageable = PageRequest.of(page, size)
+        
+        val auctions = if (status != null) {
+            auctionJpaRepository.findAllByStatusAndDeletedFalse(status, pageable)
+        } else {
+            auctionJpaRepository.findAllByDeletedFalse(pageable)
+        }
+        
+        return auctions.map { AuctionAdminResponse.from(it) }
+    }
+
+    @Transactional(readOnly = true)
+    fun getAuction(
+        id: Long
+    ): AuctionAdminResponse {
+        val auction = auctionJpaRepository.findById(id)
+            .orElseThrow { BusinessException(ErrorCode.AUCTION_NOT_FOUND) }
+        
+        return AuctionAdminResponse.from(auction)
+    }
+
     @Transactional
     fun createAuction(
         request: AuctionCreateRequest
@@ -34,6 +63,9 @@ class AuctionAdminService(
             endTime = request.endTime,
             sellerId = 0L // Admin 생성
         )
+        
+        // 관리자 직접 생성은 바로 승인 상태로
+        auction.approve()
         
         val savedAuction = auctionJpaRepository.save(auction)
         
@@ -68,7 +100,9 @@ class AuctionAdminService(
         )
     }
     
-    private fun publishAuctionCreateEvent(auction: Auction) {
+    private fun publishAuctionCreateEvent(
+        auction: Auction
+    ) {
         val event = mapOf(
             "id" to auction.id!!,
             "title" to auction.title,
@@ -84,7 +118,9 @@ class AuctionAdminService(
         kafkaTemplate.send("auction-create-topic", eventJson)
     }
     
-    private fun publishAuctionUpdateEvent(auction: Auction) {
+    private fun publishAuctionUpdateEvent(
+        auction: Auction
+    ) {
         val event = mapOf(
             "id" to auction.id!!,
             "title" to auction.title,
@@ -104,7 +140,6 @@ class AuctionAdminService(
             .orElseThrow { BusinessException(ErrorCode.AUCTION_NOT_FOUND) }
             
         if (auction.status != AuctionStatus.PENDING && 
-            auction.status != AuctionStatus.READY &&
             auction.status != AuctionStatus.APPROVED) {
 
             throw BusinessException(ErrorCode.AUCTION_ALREADY_STARTED)

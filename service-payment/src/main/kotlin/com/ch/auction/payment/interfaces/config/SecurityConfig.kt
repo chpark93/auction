@@ -33,6 +33,7 @@ class SecurityConfig {
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests { auth ->
                 auth.requestMatchers(
+                    "/internal/**", // Internal API: 서비스 간 통신 전용 (인증 불필요)
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
                     "/swagger-ui.html",

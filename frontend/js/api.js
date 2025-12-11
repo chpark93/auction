@@ -1,5 +1,5 @@
-// Gateway Base URL
-const API_BASE_URL = 'http://localhost:8081';
+// nginx 프록시를 통해 접근 (빈 문자열 = 상대 경로)
+const API_BASE_URL = '';
 
 // Axios Instance
 const api = axios.create({
@@ -150,6 +150,7 @@ const AuctionAPI = {
     getList: (params) => api.get('/api/v1/auctions', { params }),
     getDetail: (auctionId) => api.get(`/api/v1/auctions/${auctionId}`),
     getCurrentPrice: (auctionId) => api.get(`/api/v1/auctions/${auctionId}/price`),
+    getBidHistory: (auctionId, limit = 20) => api.get(`/api/v1/auctions/${auctionId}/bids`, { params: { limit } }),
     placeBid: (auctionId, amount) => {
         const user = getCurrentUser();
         if (!user) return Promise.reject(new Error('Not logged in'));
@@ -188,6 +189,9 @@ function formatDate(dateString) {
 
 // 가격 포맷팅 (콤마 추가)
 function formatPrice(price) {
+    if (price === null || price === undefined) {
+        return '0원';
+    }
     return price.toLocaleString('ko-KR') + '원';
 }
 

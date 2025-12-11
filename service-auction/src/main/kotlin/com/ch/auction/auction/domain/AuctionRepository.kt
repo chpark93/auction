@@ -10,7 +10,8 @@ interface AuctionRepository {
         auctionId: Long,
         userId: Long,
         amount: Long,
-        requestTime: Long
+        requestTime: Long,
+        userPoint: Long
     ): BidResult
 
     /**

@@ -111,8 +111,7 @@ class Auction private constructor(
         startTime: LocalDateTime,
         endTime: LocalDateTime
     ) {
-        if (this.status != AuctionStatus.PENDING &&
-            this.status != AuctionStatus.READY && 
+        if (this.status != AuctionStatus.PENDING && 
             this.status != AuctionStatus.APPROVED) {
             throw BusinessException(ErrorCode.AUCTION_ALREADY_STARTED)
         }
@@ -125,10 +124,10 @@ class Auction private constructor(
 
     /**
      * 경매 시작
-     * READY/APPROVED -> ONGOING
+     * APPROVED -> ONGOING
      */
     fun startAuction() {
-        if (this.status != AuctionStatus.READY && this.status != AuctionStatus.APPROVED) {
+        if (this.status != AuctionStatus.APPROVED) {
             throw BusinessException(ErrorCode.ACTION_NOT_READY)
         }
 

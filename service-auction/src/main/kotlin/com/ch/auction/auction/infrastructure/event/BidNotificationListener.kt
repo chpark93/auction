@@ -1,26 +1,53 @@
 package com.ch.auction.auction.infrastructure.event
 
 import com.ch.auction.auction.domain.event.BidSuccessEvent
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.ch.auction.auction.infrastructure.client.user.UserClient
+import com.ch.auction.auction.infrastructure.sse.SseEmitterManager
+import org.slf4j.LoggerFactory
 import org.springframework.context.event.EventListener
-import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
 
 @Component
 class BidNotificationListener(
-    private val redisTemplate: StringRedisTemplate,
-    private val objectMapper: ObjectMapper
+    private val sseEmitterManager: SseEmitterManager,
+    private val userClient: UserClient
 ) {
+
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     @Async
     @EventListener
     fun handleBidSuccess(
         event: BidSuccessEvent
     ) {
-        val message = objectMapper.writeValueAsString(event)
+        logger.info("Broadcasting bid success event for auction ${event.auctionId}")
+        
+        val userEmail = try {
+            val response = userClient.getUserInfo(
+                userId = event.userId
+            )
 
-        // Redis Message 발행 (auction-topic)
-        redisTemplate.convertAndSend("auction-topic", message)
+            response.data?.email ?: "None"
+        } catch (e: Exception) {
+            logger.error("Failed to fetch user info for bid notification", e)
+
+            "None"
+        }
+        
+        val bidUpdate = mapOf(
+            "auctionId" to event.auctionId,
+            "currentPrice" to event.amount,
+            "bidderId" to event.userId,
+            "bidderEmail" to userEmail,
+            "bidTime" to event.bidTime.toString(),
+            "sequence" to event.sequence
+        )
+        
+        sseEmitterManager.sendToAuction(
+            auctionId = event.auctionId,
+            eventName = "bid-update",
+            data = bidUpdate
+        )
     }
 }

@@ -93,7 +93,7 @@ class AuthorizationHeaderFilter(
                 .build()
 
             chain.filter(exchange.mutate().request(mutatedRequest).build())
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             onError(exchange, ErrorCode.TOKEN_INVALID)
         }
     }

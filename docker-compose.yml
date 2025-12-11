@@ -35,8 +35,10 @@ services:
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ports:
       - "9200:9200"
+    mem_limit: 1g
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
@@ -79,10 +81,13 @@ services:
     build: ./server-gateway
     container_name: server-gateway
     ports:
-      - "8080:8080"
+      - "8080:8081"
     environment:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://server-discovery:8761/eureka/
+      - SPRING_DATA_REDIS_HOST=redis
     depends_on:
+      redis:
+        condition: service_started
       server-discovery:
         condition: service_started
 
@@ -175,6 +180,23 @@ services:
         condition: service_started
       server-discovery:
         condition: service_started
+
+  service-admin:
+    build: ./service-admin
+    container_name: service-admin
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://server-discovery:8761/eureka/
+    depends_on:
+      server-discovery:
+        condition: service_started
+
+  frontend:
+    build: ./frontend
+    container_name: auction-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - server-gateway
 
 volumes:
   mysql_data:

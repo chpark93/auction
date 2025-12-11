@@ -9,23 +9,23 @@ import org.springframework.web.bind.annotation.*
 @FeignClient(name = "service-user")
 interface UserClient {
 
-    @GetMapping("/api/v1/users/{userId}")
+    @GetMapping("/internal/users/{userId}")
     fun getUser(
         @PathVariable("userId") userId: Long
     ): ApiResponse<UserClientDtos.UserPointResponse>
 
-    @GetMapping("/api/v1/users/email")
+    @GetMapping("/internal/users/email/points")
     fun getUserByEmail(
         @RequestParam("email") email: String
     ): ApiResponse<UserClientDtos.UserPointResponse>
 
-    @PostMapping("/api/v1/users/{userId}/points/charge")
+    @PostMapping("/internal/users/{userId}/points/charge")
     fun chargePoint(
         @PathVariable("userId") userId: Long,
         @RequestBody request: PointDTOs.PointRequest
     ): ApiResponse<UserClientDtos.UserPointResponse>
 
-    @PostMapping("/api/v1/users/{userId}/points/use")
+    @PostMapping("/internal/users/{userId}/points/use")
     fun usePoint(
         @PathVariable("userId") userId: Long,
         @RequestBody request: PointDTOs.PointRequest

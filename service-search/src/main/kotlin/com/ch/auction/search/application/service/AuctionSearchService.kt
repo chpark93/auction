@@ -1,14 +1,13 @@
 package com.ch.auction.search.application.service
 
-import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery
-import co.elastic.clients.elasticsearch._types.query_dsl.MatchQuery
-import co.elastic.clients.elasticsearch._types.query_dsl.NumberRangeQuery
-import co.elastic.clients.elasticsearch._types.query_dsl.Query
-import co.elastic.clients.elasticsearch._types.query_dsl.RangeQuery
-import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery
-import co.elastic.clients.json.JsonData
+import co.elastic.clients.elasticsearch.ElasticsearchClient
+import co.elastic.clients.elasticsearch._types.aggregations.CalendarInterval
+import co.elastic.clients.elasticsearch._types.query_dsl.*
 import com.ch.auction.search.domain.document.AuctionDocument
 import com.ch.auction.search.interfaces.api.dto.AuctionSearchCondition
+import com.ch.auction.search.interfaces.api.dto.AuctionStatsResponse
+import com.ch.auction.search.interfaces.api.dto.HourlyTrend
+import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
@@ -19,8 +18,10 @@ import org.springframework.stereotype.Service
 
 @Service
 class AuctionSearchService(
-    private val elasticsearchOperations: ElasticsearchOperations
+    private val elasticsearchOperations: ElasticsearchOperations,
+    private val elasticsearchClient: ElasticsearchClient
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     fun search(
         condition: AuctionSearchCondition,
@@ -35,8 +36,8 @@ class AuctionSearchService(
             
             // title
             shouldQueries.add(
-                MatchQuery.of { m ->
-                    m.field("title")
+                MatchQuery.of { matchQuery ->
+                    matchQuery.field("title")
                         .query(condition.keyword)
                         .boost(2.0f)
                 }._toQuery()
@@ -44,15 +45,15 @@ class AuctionSearchService(
             
             // sellerName
             shouldQueries.add(
-                MatchQuery.of { m ->
-                    m.field("sellerName")
+                MatchQuery.of { matchQuery ->
+                    matchQuery.field("sellerName")
                         .query(condition.keyword)
                 }._toQuery()
             )
             
             boolQueryBuilder.must(
-                BoolQuery.of { b ->
-                    b.should(shouldQueries)
+                BoolQuery.of { boolQuery ->
+                    boolQuery.should(shouldQueries)
                         .minimumShouldMatch("1")
                 }._toQuery()
             )
@@ -62,8 +63,8 @@ class AuctionSearchService(
         // 카테고리 필터
         if (!condition.category.isNullOrBlank()) {
             boolQueryBuilder.filter(
-                TermQuery.of { t ->
-                    t.field("category")
+                TermQuery.of { termQuery ->
+                    termQuery.field("category")
                         .value(condition.category)
                 }._toQuery()
             )
@@ -73,8 +74,8 @@ class AuctionSearchService(
         // 상태 필터
         if (!condition.status.isNullOrBlank()) {
             boolQueryBuilder.filter(
-                TermQuery.of { t ->
-                    t.field("status")
+                TermQuery.of { termQuery ->
+                    termQuery.field("status")
                         .value(condition.status)
                 }._toQuery()
             )
@@ -99,17 +100,14 @@ class AuctionSearchService(
             hasConditions = true
         }
 
-        // 최종 쿼리 빌드
         val finalQuery = if (hasConditions) {
             boolQueryBuilder.build()._toQuery()
         } else {
-            // 조건이 없으면 전체 검색
-            Query.of { q ->
-                q.matchAll { it }
+            Query.of { query ->
+                query.matchAll { it }
             }
         }
 
-        // NativeQuery 생성
         val searchQuery = NativeQuery.builder()
             .withQuery(finalQuery)
             .withPageable(pageable)
@@ -124,5 +122,125 @@ class AuctionSearchService(
             pageable,
             searchPage.totalElements
         )
+    }
+    
+    /**
+     * Elasticsearch Aggregation 통계 조회
+     */
+    fun getStatistics(): AuctionStatsResponse {
+        val startTime = System.currentTimeMillis()
+        
+        try {
+            val searchResponse = elasticsearchClient.search({ searchBuilder ->
+                searchBuilder.index("auctions")
+                    .size(0)
+                    .query { query ->
+                        query.matchAll { it }
+                    }
+                    .aggregations("status_distribution") { aggregationBuilder ->
+                        aggregationBuilder.terms { termBuilder ->
+                            termBuilder.field("status.keyword").size(10)
+                        }
+                    }
+                    .aggregations("category_distribution") { aggregationBuilder ->
+                        aggregationBuilder.terms { termBuilder ->
+                            termBuilder.field("category.keyword").size(20)
+                        }
+                    }
+                    .aggregations("hourly_trend") { aggregationBuilder ->
+                        aggregationBuilder.dateHistogram { dateHistogram ->
+                            dateHistogram.field("createdAt")
+                                .calendarInterval(CalendarInterval.Hour)
+                        }
+                    }
+                    .aggregations("avg_price") { aggregationBuilder ->
+                        aggregationBuilder.avg { avg ->
+                            avg.field("currentPrice")
+                        }
+                    }
+            }, AuctionDocument::class.java)
+            
+            // Status별 집계
+            val statusDistribution = mutableMapOf<String, Long>()
+            var totalAuctions = 0L
+            var ongoingAuctions = 0L
+            var completedAuctions = 0L
+            
+            searchResponse.aggregations()["status_distribution"]?.let { aggregation ->
+                if (aggregation.isSterms) {
+                    aggregation.sterms().buckets().array().forEach { bucket ->
+                        val status = bucket.key().stringValue()
+                        val count = bucket.docCount()
+
+                        statusDistribution[status] = count
+                        totalAuctions += count
+                        
+                        when (status) {
+                            "ONGOING" -> ongoingAuctions = count
+                            "COMPLETED", "ENDED" -> completedAuctions += count
+                        }
+                    }
+                }
+            }
+            
+            // Category별 집계
+            val categoryDistribution = mutableMapOf<String, Long>()
+            searchResponse.aggregations()["category_distribution"]?.let { aggregation ->
+                if (aggregation.isSterms) {
+                    aggregation.sterms().buckets().array().forEach { bucket ->
+                        categoryDistribution[bucket.key().stringValue()] = bucket.docCount()
+                    }
+                }
+            }
+            
+            // 시간대별 추이
+            val hourlyTrend = mutableListOf<HourlyTrend>()
+            searchResponse.aggregations()["hourly_trend"]?.let { aggregation ->
+                if (aggregation.isDateHistogram) {
+                    aggregation.dateHistogram().buckets().array().forEach { bucket ->
+                        hourlyTrend.add(
+                            HourlyTrend(
+                                hour = bucket.keyAsString() ?: "",
+                                count = bucket.docCount()
+                            )
+                        )
+                    }
+                }
+            }
+            
+            // 평균 가격
+            var avgPrice = 0.0
+            searchResponse.aggregations()["avg_price"]?.let { aggregation ->
+                if (aggregation.isAvg) {
+                    avgPrice = aggregation.avg().value()
+                }
+            }
+            
+            val elapsedTime = System.currentTimeMillis() - startTime
+            logger.info("Elasticsearch aggregation statistics fetched in ${elapsedTime}ms")
+            
+            return AuctionStatsResponse(
+                totalAuctions = totalAuctions,
+                ongoingAuctions = ongoingAuctions,
+                completedAuctions = completedAuctions,
+                statusDistribution = statusDistribution,
+                categoryDistribution = categoryDistribution,
+                hourlyRegistrationTrend = hourlyTrend,
+                averageCurrentPrice = avgPrice
+            )
+            
+        } catch (e: Exception) {
+            logger.error("Failed to fetch Elasticsearch statistics", e)
+ 
+            return AuctionStatsResponse(
+                totalAuctions = 0,
+                ongoingAuctions = 0,
+                completedAuctions = 0,
+                statusDistribution = emptyMap(),
+                categoryDistribution = emptyMap(),
+                hourlyRegistrationTrend = emptyList(),
+                averageCurrentPrice = 0.0
+            )
+        }
     }
 }

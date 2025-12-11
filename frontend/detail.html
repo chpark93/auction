@@ -187,8 +187,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
     <script src="js/api.js"></script>
     <script>
         // 페이지 로드 시 로그인 체크
@@ -197,7 +195,7 @@
         }
 
         const auctionId = getQueryParam('id');
-        let stompClient = null;
+        let eventSource = null;
         let auctionData = null;
 
         if (!auctionId) {
@@ -205,24 +203,40 @@
             location.href = 'index.html';
         }
 
-        // WebSocket 연결
-        function connectWebSocket() {
-            const socket = new SockJS(API_BASE_URL + '/ws-auction');
-            stompClient = Stomp.over(socket);
+        // SSE 연결
+        function connectSSE() {
+            const sseUrl = API_BASE_URL + `/api/v1/auctions/${auctionId}/subscribe`;
+            console.log('Connecting to SSE:', sseUrl);
             
-            stompClient.connect({}, () => {
-                console.log('WebSocket Connected');
-                
-                // 경매별 실시간 업데이트 구독
-                stompClient.subscribe(`/topic/auctions/${auctionId}`, (message) => {
-                    const data = JSON.parse(message.body);
-                    console.log('Received bid update:', data);
-                    updateCurrentPrice(data.currentPrice);
-                    addBidToHistory(data);
-                });
-            }, (error) => {
-                console.error('WebSocket connection error:', error);
+            eventSource = new EventSource(sseUrl);
+            
+            // 연결 성공
+            eventSource.addEventListener('connected', (event) => {
+                console.log('✅ SSE Connected:', JSON.parse(event.data));
             });
+            
+            // 입찰 업데이트 수신
+            eventSource.addEventListener('bid-update', (event) => {
+                const data = JSON.parse(event.data);
+                console.log('🔔 Received bid update:', data);
+                
+                // 현재가 업데이트
+                if (data.currentPrice) {
+                    updateCurrentPrice(data.currentPrice);
+                }
+                
+                // 입찰 내역에 추가
+                addBidToHistory(data);
+                
+                // 입찰자 수 업데이트 (경매 정보 다시 로드)
+                loadCurrentPrice();
+            });
+            
+            // 에러 처리
+            eventSource.onerror = (error) => {
+                console.error('❌ SSE connection error:', error);
+                // 자동 재연결됨 (브라우저가 자동으로 처리)
+            };
         }
 
         // 경매 상세 정보 로드
@@ -234,6 +248,7 @@
                     auctionData = response.data.data;
                     renderAuctionDetail(auctionData);
                     loadCurrentPrice();
+                    loadBidHistory(); // 입찰 내역 로드 추가
                     
                     // 채팅 버튼 활성화 (낙찰자 또는 판매자)
                     const currentUser = getCurrentUser();
@@ -256,9 +271,43 @@
                 if (response.data.success) {
                     const data = response.data.data;
                     updateCurrentPrice(data.currentPrice);
+                    document.getElementById('bidCount').textContent = data.uniqueBidders || 0;
                 }
             } catch (error) {
                 console.error('Failed to load current price:', error);
+            }
+        }
+
+        // 입찰 내역 로드
+        async function loadBidHistory() {
+            try {
+                const response = await AuctionAPI.getBidHistory(auctionId);
+                if (response.data.success && response.data.data) {
+                    const bids = response.data.data;
+                    const history = document.getElementById('bidHistory');
+                    
+                    if (bids.length > 0) {
+                        history.innerHTML = ''; // 기존 메시지 제거
+                        
+                        bids.forEach(bid => {
+                            const bidItem = document.createElement('div');
+                            bidItem.className = 'bid-item';
+                            bidItem.innerHTML = `
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>${formatPrice(bid.amount)}</strong>
+                                        <br>
+                                        <small class="text-muted">${bid.userEmail || '알 수 없음'}</small>
+                                    </div>
+                                    <small class="text-muted">${formatDate(bid.bidTime)}</small>
+                                </div>
+                            `;
+                            history.appendChild(bidItem);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load bid history:', error);
             }
         }
 
@@ -269,6 +318,7 @@
             document.getElementById('startPrice').textContent = formatPrice(auction.startPrice);
             document.getElementById('startTime').textContent = formatDate(auction.startTime);
             document.getElementById('endTime').textContent = formatDate(auction.endTime);
+            document.getElementById('bidCount').textContent = auction.uniqueBidders || 0;
             
             const statusBadge = getStatusBadge(auction.status);
             document.getElementById('auctionStatus').textContent = statusBadge.text;
@@ -302,7 +352,7 @@
                     <div>
                         <strong>${formatPrice(bidData.currentPrice)}</strong>
                         <br>
-                        <small class="text-muted">입찰자 #${bidData.bidderId}</small>
+                        <small class="text-muted">${bidData.bidderEmail || '알 수 없음'}</small>
                     </div>
                     <small class="text-muted">${formatDate(new Date())}</small>
                 </div>
@@ -311,9 +361,10 @@
             // 최신 입찰이 위로 오도록
             history.insertBefore(bidItem, history.firstChild);
             
-            // 입찰 카운트 업데이트
-            const bidCount = parseInt(document.getElementById('bidCount').textContent) + 1;
-            document.getElementById('bidCount').textContent = bidCount;
+            // 입찰 카운트 업데이트 (uniqueBidders 기준)
+            if (auctionData) {
+                loadAuctionDetail(); // 경매 정보를 다시 로드하여 uniqueBidders 업데이트
+            }
         }
 
         // 입찰하기
@@ -393,13 +444,13 @@
         window.addEventListener('DOMContentLoaded', () => {
             loadUserPoint();
             loadAuctionDetail();
-            connectWebSocket();
+            connectSSE();
         });
 
-        // 페이지 떠날 때 WebSocket 연결 해제
+        // 페이지 떠날 때 SSE 연결 해제
         window.addEventListener('beforeunload', () => {
-            if (stompClient) {
-                stompClient.disconnect();
+            if (eventSource) {
+                eventSource.close();
             }
         });
     </script>

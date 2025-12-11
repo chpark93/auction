@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping
 @FeignClient(name = "service-search")
 interface SearchClient {
     
-    @GetMapping("/api/v1/search/stats")
+    @GetMapping("/internal/search/stats")
     fun getStats(): ApiResponse<SearchClientDtos.StatsResponse>
 }
 

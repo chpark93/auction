@@ -55,6 +55,7 @@ class SecurityConfig(
                 authorizeHttpRequestConfigurer.requestMatchers(
                     "/api/v1/auth/**",
                     "/api/v1/users/**",
+                    "/internal/**", // Internal API: 서비스 간 통신 전용 (인증 불필요)
                     "/h2-console/**",
                     "/swagger-ui/**",
                     "/v3/api-docs/**",

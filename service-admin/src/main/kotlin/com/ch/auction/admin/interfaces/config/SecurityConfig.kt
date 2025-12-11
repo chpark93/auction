@@ -7,11 +7,14 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.SecurityFilterChain
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
-class SecurityConfig {
+class SecurityConfig(
+    private val headerAuthenticationFilter: HeaderAuthenticationFilter
+) {
 
     @Bean
     fun securityFilterChain(
@@ -46,6 +49,7 @@ class SecurityConfig {
                 authorizeHttpRequestConfigurer
                     .anyRequest().authenticated()
             }
+            .addFilterBefore(headerAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
 
         return http.build()
     }

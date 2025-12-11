@@ -36,4 +36,13 @@ interface AuctionJpaRepository : JpaRepository<Auction, Long> {
         statuses: List<AuctionStatus>,
         pageable: Pageable
     ): Page<Auction>
+    
+    fun findAllByDeletedFalse(
+        pageable: Pageable
+    ): Page<Auction>
+    
+    fun findAllByStatusAndDeletedFalse(
+        status: AuctionStatus,
+        pageable: Pageable
+    ): Page<Auction>
 }

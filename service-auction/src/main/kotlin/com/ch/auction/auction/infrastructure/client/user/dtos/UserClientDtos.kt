@@ -12,4 +12,16 @@ object UserClientDtos {
         val role: String,
         val status: UserStatus = UserStatus.ACTIVE
     )
+    
+    data class HoldPointRequest(
+        val amount: Long,
+        val reason: String,
+        val auctionId: Long? = null
+    )
+    
+    data class ReleasePointRequest(
+        val amount: Long,
+        val reason: String,
+        val auctionId: Long? = null
+    )
 }

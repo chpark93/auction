@@ -40,7 +40,7 @@ class AuctionSyncConsumer(
                 startPrice = event.startPrice,
                 currentPrice = event.startPrice,
                 bidCount = 0,
-                status = "ONGOING", // 초기 상태 : PENDING
+                status = "PENDING",
                 thumbnailUrl = event.thumbnailUrl,
                 createdAt = LocalDateTime.parse(event.createdAt),
                 endTime = LocalDateTime.parse(event.endTime)
@@ -88,8 +88,15 @@ class AuctionSyncConsumer(
     ) {
         try {
             val event = objectMapper.readValue(message, AuctionSearchDtos.BidSuccessEvent::class.java)
+            val auctionId = event.auctionId.toString()
             
-            val updateQuery = UpdateQuery.builder(event.auctionId.toString())
+            val existingDocument = auctionSearchRepository.findById(auctionId).orElse(null)
+            if (existingDocument == null) {
+                logger.warn("Auction document not found: $auctionId. Skipping update.")
+                return
+            }
+            
+            val updateQuery = UpdateQuery.builder(auctionId)
                 .withScriptType(ScriptType.INLINE)
                 .withScript("ctx._source.currentPrice = params.currentPrice; ctx._source.bidCount = params.bidCount")
                 .withParams(mapOf(
@@ -114,9 +121,17 @@ class AuctionSyncConsumer(
         event: AuctionEndedEvent
     ) {
         try {
+            val auctionId = event.auctionId.toString()
+            
+            val existingDocument = auctionSearchRepository.findById(auctionId).orElse(null)
+            if (existingDocument == null) {
+                logger.warn("Auction document not found: $auctionId. Skipping update.")
+                return
+            }
+            
             val status = if (event.winnerId != null) "COMPLETED" else "FAILED"
             
-            val updateQuery = UpdateQuery.builder(event.auctionId.toString())
+            val updateQuery = UpdateQuery.builder(auctionId)
                 .withDocument(Document.create().apply {
                     put("status", status)
                     put("currentPrice", event.finalPrice)

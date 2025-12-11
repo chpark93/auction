@@ -3,13 +3,13 @@ package com.ch.auction.auction.application.scheduler
 import com.ch.auction.auction.domain.AuctionRepository
 import com.ch.auction.auction.domain.AuctionStatus
 import com.ch.auction.auction.infrastructure.persistence.AuctionJpaRepository
+import com.ch.auction.auction.infrastructure.sse.SseEmitterManager
 import com.ch.auction.common.event.AuctionEndedEvent
 import com.ch.auction.common.event.NotificationEvent
 import com.ch.auction.common.event.NotificationType
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.core.KafkaTemplate
-import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -19,7 +19,7 @@ import java.time.LocalDateTime
 class AuctionEndScheduler(
     private val auctionJpaRepository: AuctionJpaRepository,
     private val auctionRepository: AuctionRepository,
-    private val messagingTemplate: SimpMessagingTemplate,
+    private val sseEmitterManager: SseEmitterManager,
     private val kafkaTemplate: KafkaTemplate<String, Any>
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -83,7 +83,11 @@ class AuctionEndScheduler(
                     "payment" to redisInfo.currentPrice
                 )
 
-                messagingTemplate.convertAndSend("/topic/auctions/${auction.id}", message)
+                sseEmitterManager.sendToAuction(
+                    auctionId = auction.id,
+                    eventName = "auction-ended",
+                    data = message
+                )
 
                 logger.info("Auction {} completed. Winner: {}, Price: {}", auction.id, redisInfo.lastBidderId, redisInfo.currentPrice)
             } else {
@@ -112,7 +116,11 @@ class AuctionEndScheduler(
                     "auctionId" to auction.id
                 )
 
-                messagingTemplate.convertAndSend("/topic/auctions/${auction.id}", message)
+                sseEmitterManager.sendToAuction(
+                    auctionId = auction.id,
+                    eventName = "auction-ended",
+                    data = message
+                )
 
                 logger.info("Auction {} failed (no bidders).", auction.id)
             }

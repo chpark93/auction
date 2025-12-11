@@ -32,7 +32,9 @@ class UserController(
         )
         
         return ResponseEntity.ok(
-            ApiResponse.ok(data = response)
+            ApiResponse.ok(
+                data = response
+            )
         )
     }
     
@@ -45,17 +47,7 @@ class UserController(
         
         return ResponseEntity.ok(
             ApiResponse.ok(
-                data = UserResponse(
-                    userId = user.userId,
-                    email = "",
-                    nickname = "",
-                    name = "",
-                    phoneNumber = "",
-                    role = com.ch.auction.common.enums.UserRole.ROLE_USER,
-                    status = UserStatus.ACTIVE,
-                    totalPoint = user.totalPoint,
-                    createdAt = java.time.LocalDateTime.now()
-                )
+                data = user
             )
         )
     }

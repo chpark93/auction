@@ -3,9 +3,9 @@ package com.ch.auction.auction.application.scheduler
 import com.ch.auction.auction.domain.AuctionRepository
 import com.ch.auction.auction.domain.AuctionStatus
 import com.ch.auction.auction.infrastructure.persistence.AuctionJpaRepository
+import com.ch.auction.auction.infrastructure.sse.SseEmitterManager
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock
 import org.slf4j.LoggerFactory
-import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -15,7 +15,7 @@ import java.time.LocalDateTime
 class AuctionStartScheduler(
     private val auctionJpaRepository: AuctionJpaRepository,
     private val auctionRepository: AuctionRepository,
-    private val messagingTemplate: SimpMessagingTemplate
+    private val sseEmitterManager: SseEmitterManager
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -28,7 +28,7 @@ class AuctionStartScheduler(
     @Transactional
     fun startScheduledAuctions() {
         val auctions = auctionJpaRepository.findAllByStatusAndStartTimeLessThanEqual(
-            status = AuctionStatus.READY,
+            status = AuctionStatus.APPROVED,
             now = LocalDateTime.now()
         )
 
@@ -47,7 +47,11 @@ class AuctionStartScheduler(
                 "startPrice" to auction.startPrice
             )
 
-            messagingTemplate.convertAndSend("/topic/auctions/${auction.id}", message)
+            sseEmitterManager.sendToAuction(
+                auctionId = auction.id,
+                eventName = "auction-started",
+                data = message
+            )
         }
     }
 }

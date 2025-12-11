@@ -9,6 +9,16 @@ spring:
       server:
         webflux:
           routes:
+            # ⛔️ Internal APIs - Block external access
+            # /internal/** 경로는 서비스 간 통신 전용으로, 외부에서 접근 불가
+            - id: block-internal-apis
+              uri: no://op
+              predicates:
+                - Path=/internal/**
+              filters:
+                - name: SetStatus
+                  args:
+                    status: 403
             # Auth Service (Public)
             - id: service-user-public
               uri: lb://SERVICE-USER

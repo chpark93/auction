@@ -6,6 +6,7 @@ import com.ch.auction.auction.domain.AuctionRepository
 import com.ch.auction.auction.domain.BidResult
 import com.ch.auction.auction.domain.event.BidSuccessEvent
 import com.ch.auction.auction.infrastructure.persistence.AuctionJpaRepository
+import com.ch.auction.auction.infrastructure.persistence.BidJpaRepository
 import com.ch.auction.common.ErrorCode
 import com.ch.auction.exception.BusinessException
 import org.springframework.context.ApplicationEventPublisher
@@ -23,7 +24,8 @@ import java.util.*
 class AuctionRedisAdapter(
     private val redisTemplate: StringRedisTemplate,
     private val eventPublisher: ApplicationEventPublisher,
-    private val auctionJpaRepository: AuctionJpaRepository
+    private val auctionJpaRepository: AuctionJpaRepository,
+    private val bidJpaRepository: BidJpaRepository
 ) : AuctionRepository {
 
     private val bidLuaScript: RedisScript<String> = RedisScript.of(
@@ -39,7 +41,8 @@ class AuctionRedisAdapter(
         auctionId: Long,
         userId: Long,
         amount: Long,
-        requestTime: Long
+        requestTime: Long,
+        userPoint: Long
     ): BidResult {
         val key = "$AUCTION_LUA_PREFIX:$auctionId"
 
@@ -47,7 +50,8 @@ class AuctionRedisAdapter(
             key = key,
             userId = userId,
             amount = amount,
-            requestTime = requestTime
+            requestTime = requestTime,
+            userPoint = userPoint
         )
 
         return handleLuaResult(
@@ -62,14 +66,16 @@ class AuctionRedisAdapter(
         key: String,
         userId: Long,
         amount: Long,
-        requestTime: Long
+        requestTime: Long,
+        userPoint: Long
     ): String {
         return redisTemplate.execute(
             bidLuaScript,
             Collections.singletonList(key),
-            amount.toString(),
             userId.toString(),
-            requestTime.toString()
+            amount.toString(),
+            requestTime.toString(),
+            userPoint.toString()
         )
     }
 
@@ -134,19 +140,45 @@ class AuctionRedisAdapter(
             throw BusinessException(ErrorCode.AUCTION_NOT_FOUND)
         }
 
+        // 기존 입찰 데이터 분석
+        val bids = bidJpaRepository.findByAuctionIdOrderByBidTimeDesc(
+            auctionId = auctionId,
+            pageable = org.springframework.data.domain.PageRequest.of(0, 1000)
+        )
+        
+        val uniqueBidders = bids.map { it.userId }.distinct().size
+        val bidCount = bids.size
+        val lastBid = bids.firstOrNull()
+
         val key = "$AUCTION_LUA_PREFIX:$auctionId"
+        val biddersKey = "$key:bidders"
         val endTimeMillis = auction.endTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
-        val map = mapOf(
+        val map = mutableMapOf(
+            "status" to auction.status.name,
             "currentPrice" to auction.currentPrice.toString(),
             "endTime" to endTimeMillis.toString(),
-            "bidSequence" to "0",
+            "bidSequence" to (lastBid?.sequence?.toString() ?: "0"),
+            "bidCount" to bidCount.toString(),
+            "uniqueBidders" to uniqueBidders.toString(),
             "sellerId" to auction.sellerId.toString()
         )
+        
+        // 마지막 입찰자 정보 추가
+        if (lastBid != null) {
+            map["lastBidderId"] = lastBid.userId.toString()
+            map["lastBidTime"] = lastBid.bidTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli().toString()
+        }
 
-        // 기존 데이터가 있다면 삭제 후 삽입
         redisTemplate.delete(key)
+        redisTemplate.delete(biddersKey)
         redisTemplate.opsForHash<String, String>().putAll(key, map)
+        
+        // 입찰자 Set 복원
+        if (bids.isNotEmpty()) {
+            val bidderIds = bids.map { it.userId.toString() }.toTypedArray()
+            redisTemplate.opsForSet().add(biddersKey, *bidderIds)
+        }
     }
 
     override fun getAuctionRedisInfo(
@@ -158,10 +190,14 @@ class AuctionRedisAdapter(
 
         val currentPrice = entries["currentPrice"]?.toLongOrNull() ?: 0L
         val lastBidderId = entries["lastBidderId"]?.toLongOrNull()
+        val uniqueBidders = entries["uniqueBidders"]?.toIntOrNull() ?: 0
+        val bidCount = entries["bidCount"]?.toIntOrNull() ?: 0
 
         return AuctionRedisDtos.AuctionRedisInfo(
             currentPrice = currentPrice,
-            lastBidderId = lastBidderId
+            lastBidderId = lastBidderId,
+            uniqueBidders = uniqueBidders,
+            bidCount = bidCount
         )
     }
 
@@ -177,6 +213,6 @@ class AuctionRedisAdapter(
         seconds: Long
     ) {
         val key = "$AUCTION_LUA_PREFIX:$auctionId"
-        redisTemplate.expire(key, Duration.ofSeconds(seconds))
+        redisTemplate.opsForValue().getAndExpire(key, Duration.ofSeconds(seconds))
     }
 }

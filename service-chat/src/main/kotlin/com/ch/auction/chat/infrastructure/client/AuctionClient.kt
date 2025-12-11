@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable
 @FeignClient(name = "service-auction", fallback = AuctionClientFallback::class)
 interface AuctionClient {
 
-    @GetMapping("/api/v1/auctions/{auctionId}")
+    @GetMapping("/internal/auctions/detail/{auctionId}")
     fun getAuction(
         @PathVariable("auctionId") auctionId: Long
     ): ApiResponse<AuctionDtos.AuctionResponse>

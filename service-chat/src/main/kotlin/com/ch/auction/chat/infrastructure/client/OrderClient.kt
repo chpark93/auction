@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam
 @FeignClient(name = "service-payment")
 interface OrderClient {
 
-    @GetMapping("/api/v1/orders")
+    @GetMapping("/internal/payments/orders")
     fun getOrderByAuctionId(
         @RequestParam("auctionId") auctionId: Long
     ): ApiResponse<OrderClientDtos.OrderResponse>

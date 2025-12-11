@@ -3,8 +3,10 @@ package com.ch.auction.auction.interfaces.api
 import com.ch.auction.auction.application.service.AuctionService
 import com.ch.auction.auction.interfaces.api.dto.AuctionListResponse
 import com.ch.auction.auction.interfaces.api.dto.AuctionResponse
+import com.ch.auction.auction.interfaces.api.dto.BidHistoryResponse
 import com.ch.auction.auction.interfaces.api.dto.BidRequest
 import com.ch.auction.auction.interfaces.api.dto.BidResponse
+import com.ch.auction.auction.interfaces.api.dto.CurrentPriceResponse
 import com.ch.auction.common.ApiResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -80,14 +82,32 @@ class AuctionController(
     @GetMapping("/{id}/price")
     fun getCurrentPrice(
         @PathVariable id: Long
-    ): ResponseEntity<ApiResponse<Long>> {
-        val currentPrice = auctionService.getAuctionCurrentPrice(
+    ): ResponseEntity<ApiResponse<CurrentPriceResponse>> {
+        val response = auctionService.getAuctionCurrentPrice(
             auctionId = id
         )
 
         return ResponseEntity.ok(
             ApiResponse.ok(
-                data = currentPrice
+                data = response
+            )
+        )
+    }
+
+    @Operation(summary = "입찰 내역 조회", description = "경매 입찰 내역 조회")
+    @GetMapping("/{id}/bids")
+    fun getBidHistory(
+        @PathVariable id: Long,
+        @RequestParam(defaultValue = "20") limit: Int
+    ): ResponseEntity<ApiResponse<List<BidHistoryResponse>>> {
+        val bidHistory = auctionService.getBidHistory(
+            auctionId = id,
+            limit = limit
+        )
+
+        return ResponseEntity.ok(
+            ApiResponse.ok(
+                data = bidHistory
             )
         )
     }

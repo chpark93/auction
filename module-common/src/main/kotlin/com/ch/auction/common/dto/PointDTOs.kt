@@ -13,5 +13,17 @@ object PointDTOs {
         val lockedPoint: Long = 0L,
         val availablePoint: Long
     )
+    
+    data class HoldPointRequest(
+        val amount: Long,
+        val reason: String,
+        val auctionId: Long? = null
+    )
+    
+    data class ReleasePointRequest(
+        val amount: Long,
+        val reason: String,
+        val auctionId: Long? = null
+    )
 }
 

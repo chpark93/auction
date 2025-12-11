@@ -5,6 +5,8 @@ object AuctionRedisDtos {
 
     data class AuctionRedisInfo(
         val currentPrice: Long,
-        val lastBidderId: Long?
+        val lastBidderId: Long?,
+        val uniqueBidders: Int = 0,
+        val bidCount: Int = 0
     )
 }

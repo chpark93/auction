@@ -8,40 +8,40 @@ import org.springframework.web.bind.annotation.*
 @FeignClient(name = "service-auction")
 interface AuctionClient {
     
-    @GetMapping("/api/v1/admin/auctions")
+    @GetMapping("/internal/auctions")
     fun getAuctions(
         @RequestParam(required = false) page: Int?,
         @RequestParam(required = false) size: Int?,
         @RequestParam(required = false) status: String?
     ): ApiResponse<AuctionClientDtos.AuctionListResponse>
     
-    @GetMapping("/api/v1/admin/auctions/{auctionId}")
+    @GetMapping("/internal/auctions/{auctionId}")
     fun getAuction(
         @PathVariable auctionId: Long
     ): ApiResponse<AuctionClientDtos.AuctionResponse>
     
-    @PatchMapping("/api/v1/admin/auctions/{auctionId}/approve")
+    @PostMapping("/internal/auctions/{auctionId}/approve")
     fun approveAuction(
         @PathVariable auctionId: Long
     ): ApiResponse<Unit>
     
-    @PatchMapping("/api/v1/admin/auctions/{auctionId}/reject")
+    @PostMapping("/internal/auctions/{auctionId}/reject")
     fun rejectAuction(
         @PathVariable auctionId: Long,
         @RequestBody request: AuctionClientDtos.RejectRequest
     ): ApiResponse<Unit>
     
-    @DeleteMapping("/api/v1/admin/auctions/{auctionId}")
+    @DeleteMapping("/internal/auctions/{auctionId}")
     fun deleteAuction(
         @PathVariable auctionId: Long
     ): ApiResponse<Unit>
     
-    @PostMapping("/api/v1/admin/auctions/{auctionId}/start")
+    @PostMapping("/internal/auctions/{auctionId}/start")
     fun startAuction(
         @PathVariable auctionId: Long
     ): ApiResponse<Unit>
     
-    @PostMapping("/api/v1/admin/auctions/{auctionId}/end")
+    @PostMapping("/internal/auctions/{auctionId}/end")
     fun endAuction(
         @PathVariable auctionId: Long
     ): ApiResponse<Unit>

@@ -7,8 +7,6 @@ enum class AuctionStatus {
     REJECTED,
     // 승인 완료
     APPROVED,
-    // 시작 전 (관리자 직접 생성)
-    READY,
     // 진행 중
     ONGOING,
     // 종료 (입찰 마감)

@@ -13,12 +13,14 @@ data class AuctionListResponse(
     val status: AuctionStatus,
     val startTime: LocalDateTime,
     val endTime: LocalDateTime,
-    val createdAt: LocalDateTime
+    val createdAt: LocalDateTime,
+    val uniqueBidders: Int = 0
 ) {
     companion object {
         fun from(
             auction: Auction,
-            sellerName: String
+            sellerName: String,
+            uniqueBidders: Int = 0
         ): AuctionListResponse {
             return AuctionListResponse(
                 id = auction.id!!,
@@ -29,7 +31,8 @@ data class AuctionListResponse(
                 status = auction.status,
                 startTime = auction.startTime,
                 endTime = auction.endTime,
-                createdAt = auction.createdAt
+                createdAt = auction.createdAt,
+                uniqueBidders = uniqueBidders
             )
         }
     }
