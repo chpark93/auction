@@ -32,12 +32,10 @@ class AuctionSearchService(
         pageable: Pageable
     ): Page<AuctionDocument> {
         val boolQueryBuilder = BoolQuery.Builder()
-        var hasConditions = false
-        
+
         logger.info("=== Search Condition: keyword=${condition.keyword}, status=${condition.status}, category=${condition.category} ===")
         
         // PENDING, REJECTED 상태는 일반 사용자에게 노출하지 않음
-        // status 조건이 명시적으로 주어지지 않은 경우에만 적용
         if (condition.status.isNullOrBlank()) {
             listOf("PENDING", "REJECTED").forEach { status ->
                 boolQueryBuilder.mustNot(
@@ -97,7 +95,6 @@ class AuctionSearchService(
                         .minimumShouldMatch("1")
                 }._toQuery()
             )
-            hasConditions = true
         }
 
         // 카테고리 필터
@@ -108,7 +105,6 @@ class AuctionSearchService(
                         .value(condition.category)
                 }._toQuery()
             )
-            hasConditions = true
         }
 
         // 상태 필터
@@ -139,7 +135,6 @@ class AuctionSearchService(
                     }._toQuery()
                 )
             }
-            hasConditions = true
         }
 
         // 가격 범위 필터
@@ -157,7 +152,6 @@ class AuctionSearchService(
                 .build()
 
             boolQueryBuilder.filter(rangeQuery._toRangeQuery())
-            hasConditions = true
         }
 
         // mustNot 조건이 있으므로 항상 boolQuery 사용
