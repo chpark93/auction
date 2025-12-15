@@ -183,7 +183,7 @@ const AuctionAPI = {
     getMyAuctions: () => {
         const user = getCurrentUser();
         if (!user) return Promise.reject(new Error('Not logged in'));
-        return api.get('/api/v1/seller/auctions/my-selling', {
+        return api.get('/api/v1/seller/auctions', {
             headers: { 'X-User-Id': user.userId }
         });
     }
