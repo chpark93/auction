@@ -29,7 +29,9 @@ class TestDataInitializer(
             logger.info("Initializing test data...")
             
             val auction = Auction.create(
+                productId = 1L,
                 title = "Test Auction Item",
+                thumbnailUrl = null,
                 startPrice = 1000L,
                 startTime = LocalDateTime.now().minusMinutes(1),
                 endTime = LocalDateTime.now().plusDays(1),

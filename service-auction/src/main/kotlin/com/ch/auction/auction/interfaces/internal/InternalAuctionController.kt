@@ -3,6 +3,7 @@ package com.ch.auction.auction.interfaces.internal
 import com.ch.auction.auction.application.service.AuctionAdminService
 import com.ch.auction.auction.application.service.AuctionService
 import com.ch.auction.auction.domain.AuctionStatus
+import com.ch.auction.auction.interfaces.api.dto.AuctionDetailResponse
 import com.ch.auction.auction.interfaces.api.dto.AuctionResponse
 import com.ch.auction.auction.interfaces.api.dto.admin.AuctionAdminResponse
 import com.ch.auction.common.ApiResponse
@@ -58,7 +59,7 @@ class InternalAuctionController(
     @GetMapping("/detail/{id}")
     fun getAuctionDetail(
         @PathVariable id: Long
-    ): ResponseEntity<ApiResponse<AuctionResponse>> {
+    ): ResponseEntity<ApiResponse<AuctionDetailResponse>> {
         val response = auctionService.getAuction(
             auctionId = id
         )

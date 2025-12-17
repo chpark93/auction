@@ -11,7 +11,9 @@ import java.time.LocalDateTime
 @Table(name = "auctions")
 @SQLRestriction("deleted = false")
 class Auction private constructor(
+    productId: Long,
     title: String,
+    thumbnailUrl: String?,
     startPrice: Long,
     startTime: LocalDateTime,
     endTime: LocalDateTime,
@@ -24,8 +26,16 @@ class Auction private constructor(
     val id: Long? = null
 ) : BaseEntity() {
 
+    @Column(nullable = false, unique = true)
+    var productId: Long = productId
+        private set
+
     @Column(nullable = false)
     var title: String = title
+        private set
+
+    @Column
+    var thumbnailUrl: String? = thumbnailUrl
         private set
 
     @Column(nullable = false)
@@ -55,14 +65,18 @@ class Auction private constructor(
 
     companion object {
         fun create(
+            productId: Long,
             title: String,
+            thumbnailUrl: String?,
             startPrice: Long,
             startTime: LocalDateTime,
             endTime: LocalDateTime,
             sellerId: Long
         ): Auction {
             return Auction(
+                productId = productId,
                 title = title,
+                thumbnailUrl = thumbnailUrl,
                 startPrice = startPrice,
                 startTime = startTime,
                 endTime = endTime,
@@ -106,7 +120,6 @@ class Auction private constructor(
     }
 
     fun update(
-        title: String,
         startPrice: Long,
         startTime: LocalDateTime,
         endTime: LocalDateTime
@@ -115,11 +128,18 @@ class Auction private constructor(
             this.status != AuctionStatus.APPROVED) {
             throw BusinessException(ErrorCode.AUCTION_ALREADY_STARTED)
         }
-        this.title = title
         this.startPrice = startPrice
         this.currentPrice = startPrice
         this.startTime = startTime
         this.endTime = endTime
+    }
+
+    fun updateDenormalizedFields(
+        title: String,
+        thumbnailUrl: String?
+    ) {
+        this.title = title
+        this.thumbnailUrl = thumbnailUrl
     }
 
     /**

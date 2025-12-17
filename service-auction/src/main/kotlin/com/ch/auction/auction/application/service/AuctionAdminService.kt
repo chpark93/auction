@@ -57,7 +57,9 @@ class AuctionAdminService(
         request: AuctionCreateRequest
     ): AuctionAdminResponse {
         val auction = Auction.create(
-            title = request.title,
+            productId = request.productId,
+            title = "Admin Created Auction",
+            thumbnailUrl = null,
             startPrice = request.startPrice,
             startTime = request.startTime,
             endTime = request.endTime,
@@ -86,7 +88,6 @@ class AuctionAdminService(
             .orElseThrow { BusinessException(ErrorCode.AUCTION_NOT_FOUND) }
 
         auction.update(
-            title = request.title,
             startPrice = request.startPrice,
             startTime = request.startTime,
             endTime = request.endTime

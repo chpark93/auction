@@ -12,14 +12,26 @@ data class AuctionDocument(
     @Id
     val id: String,
 
+    @Field(type = FieldType.Long)
+    val productId: Long,
+
     @Field(type = FieldType.Text, analyzer = "standard")
     val title: String,
+
+    @Field(type = FieldType.Text, analyzer = "standard")
+    val description: String? = null,
 
     @Field(type = FieldType.Keyword)
     val category: String,
 
+    @Field(type = FieldType.Keyword)
+    val condition: String? = null,
+
     @Field(type = FieldType.Text)
     val sellerName: String,
+
+    @Field(type = FieldType.Long)
+    val sellerId: Long,
 
     @Field(type = FieldType.Long)
     val startPrice: Long,

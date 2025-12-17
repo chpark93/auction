@@ -9,8 +9,6 @@ import java.util.concurrent.ConcurrentHashMap
 class SseEmitterManager {
 
     private val logger = LoggerFactory.getLogger(javaClass)
-
-    // auctionId -> Set<SseEmitter>
     private val emitters = ConcurrentHashMap<Long, MutableSet<SseEmitter>>()
 
     /**
@@ -86,7 +84,6 @@ class SseEmitterManager {
             }
         }
 
-        // 실패한 연결들 제거
         deadEmitters.forEach { emitter ->
             removeEmitter(auctionId, emitter)
         }

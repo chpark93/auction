@@ -20,7 +20,6 @@ class KafkaConfig {
     @Value("\${spring.kafka.bootstrap-servers:localhost:9092}")
     private lateinit var bootstrapServers: String
 
-    // --- Producer Configuration ---
     @Bean
     fun producerFactory(): ProducerFactory<String, Any> {
         val configProps = mapOf(
@@ -36,7 +35,6 @@ class KafkaConfig {
         return KafkaTemplate(producerFactory())
     }
 
-    // --- Consumer Configuration ---
     @Bean
     fun consumerFactory(): ConsumerFactory<String, Any> {
         val configProps = mapOf(

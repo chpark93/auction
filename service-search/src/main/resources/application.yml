@@ -37,3 +37,12 @@ springdoc:
     enabled: true
     tags-sorter: alpha
     operations-sorter: alpha
+
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+      service-product:
+        url: http://localhost:8085

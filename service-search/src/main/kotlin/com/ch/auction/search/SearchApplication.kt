@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfigurat
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.runApplication
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient
+import org.springframework.cloud.openfeign.EnableFeignClients
 
 @SpringBootApplication(
     scanBasePackages = ["com.ch.auction"],
@@ -15,6 +16,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient
     ]
 )
 @EnableDiscoveryClient
+@EnableFeignClients(basePackages = ["com.ch.auction"])
 @ConfigurationPropertiesScan(basePackages = ["com.ch.auction"])
 class SearchApplication
 

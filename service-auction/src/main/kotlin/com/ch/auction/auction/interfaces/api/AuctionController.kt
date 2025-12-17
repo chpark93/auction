@@ -40,7 +40,7 @@ class AuctionController(
     @GetMapping("/{id}")
     fun getAuction(
         @PathVariable id: Long
-    ): ResponseEntity<ApiResponse<AuctionResponse>> {
+    ): ResponseEntity<ApiResponse<AuctionDetailResponse>> {
         val response = auctionService.getAuction(
             auctionId = id
         )

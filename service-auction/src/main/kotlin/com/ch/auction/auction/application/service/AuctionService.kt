@@ -11,6 +11,7 @@ import com.ch.auction.auction.infrastructure.persistence.AuctionJpaRepository
 import com.ch.auction.auction.infrastructure.persistence.BidJpaRepository
 import com.ch.auction.auction.infrastructure.redis.SellerInfoCacheRepository
 import com.ch.auction.auction.infrastructure.redis.UserStatusCacheRepository
+import com.ch.auction.auction.interfaces.api.dto.AuctionDetailResponse
 import com.ch.auction.auction.interfaces.api.dto.AuctionListResponse
 import com.ch.auction.auction.interfaces.api.dto.AuctionResponse
 import com.ch.auction.auction.interfaces.api.dto.BidHistoryResponse
@@ -36,6 +37,7 @@ class AuctionService(
     private val sellerInfoCacheRepository: SellerInfoCacheRepository,
     private val userStatusCacheRepository: UserStatusCacheRepository,
     private val userClient: UserClient,
+    private val productClient: com.ch.auction.auction.infrastructure.client.product.ProductClient,
     private val bidCancellationService: BidCancellationService,
     private val searchClient: SearchClient
 ) {
@@ -143,7 +145,36 @@ class AuctionService(
         )
     }
 
+    /**
+     * 경매 상세 조회
+     */
     fun getAuction(
+        auctionId: Long
+    ): AuctionDetailResponse {
+        val auction = auctionJpaRepository.findByIdOrNull(auctionId)
+            ?: throw BusinessException(ErrorCode.AUCTION_NOT_FOUND)
+
+        val productResponse = productClient.getProduct(
+            productId = auction.productId
+        )
+        val product = productResponse.data ?: throw BusinessException(ErrorCode.RESOURCE_NOT_FOUND)
+
+        val redisInfo = auctionRepository.getAuctionRedisInfo(
+            auctionId = auctionId
+        )
+
+        return AuctionDetailResponse.from(
+            auction = auction,
+            product = product,
+            uniqueBidders = redisInfo?.uniqueBidders ?: 0,
+            bidCount = redisInfo?.bidCount ?: 0
+        )
+    }
+
+    /**
+     * 경매 기본 정보 조회 (목록용)
+     */
+    fun getAuctionBasic(
         auctionId: Long
     ): AuctionResponse {
         val auction = auctionJpaRepository.findByIdOrNull(auctionId)

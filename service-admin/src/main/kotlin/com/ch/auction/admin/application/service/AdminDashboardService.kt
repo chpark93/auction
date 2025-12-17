@@ -17,7 +17,7 @@ class AdminDashboardService(
     private val paymentClient: PaymentClient,
     private val searchClient: SearchClient
 ) {
-    private val virtualExecutor = Executors.newVirtualThreadPerTaskExecutor()
+    private val virtualThreadExecutor = Executors.newVirtualThreadPerTaskExecutor()
     private val logger = LoggerFactory.getLogger(javaClass)
     
     /**
@@ -37,7 +37,7 @@ class AdminDashboardService(
                 logger.warn("Failed to fetch users stats: ${e.message}")
                 null
             }
-        }, virtualExecutor)
+        }, virtualThreadExecutor)
         
         val pendingAuctionsFuture = CompletableFuture.supplyAsync({
             try {
@@ -50,7 +50,7 @@ class AdminDashboardService(
                 logger.warn("Failed to fetch pending auctions stats: ${e.message}")
                 null
             }
-        }, virtualExecutor)
+        }, virtualThreadExecutor)
         
         val settlementsFuture = CompletableFuture.supplyAsync({
             try {
@@ -63,7 +63,7 @@ class AdminDashboardService(
                 logger.warn("Failed to fetch settlements stats: ${e.message}")
                 null
             }
-        }, virtualExecutor)
+        }, virtualThreadExecutor)
         
         val elasticsearchStatsFuture = CompletableFuture.supplyAsync({
             try {
@@ -72,7 +72,7 @@ class AdminDashboardService(
                 logger.warn("Failed to fetch Elasticsearch stats: ${e.message}")
                 null
             }
-        }, virtualExecutor)
+        }, virtualThreadExecutor)
         
         // CompletableFuture 완료 대기
         CompletableFuture.allOf(
