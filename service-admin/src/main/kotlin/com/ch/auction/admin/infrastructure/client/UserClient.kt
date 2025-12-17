@@ -6,7 +6,10 @@ import com.ch.auction.common.enums.UserStatus
 import org.springframework.cloud.openfeign.FeignClient
 import org.springframework.web.bind.annotation.*
 
-@FeignClient(name = "service-user")
+@FeignClient(
+    name = "service-user",
+    fallback = UserClientFallback::class
+)
 interface UserClient {
     
     @GetMapping("/internal/users")
@@ -23,7 +26,7 @@ interface UserClient {
 
     @GetMapping("/internal/users/batch")
     fun getUsersBatch(
-        @RequestParam ids: List<Long>
+        @RequestParam userIds: List<Long>
     ): ApiResponse<Map<Long, UserClientDtos.UserResponse>>
     
     @PatchMapping("/internal/users/{userId}/status")

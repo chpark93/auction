@@ -7,7 +7,11 @@ import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 
-@FeignClient(name = "service-product", url = "\${feign.client.config.service-product.url}")
+@FeignClient(
+    name = "service-product",
+    url = "\${feign.client.config.service-product.url}",
+    fallback = ProductClientFallback::class
+)
 interface ProductClient {
 
     @GetMapping("/api/v1/products/{productId}")

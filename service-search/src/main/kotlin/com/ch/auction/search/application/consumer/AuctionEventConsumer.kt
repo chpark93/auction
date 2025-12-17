@@ -30,37 +30,71 @@ class AuctionEventConsumer(
 
             val auctionId = event["id"].toString()
             val productId = (event["productId"] as? Number)?.toLong()
-                ?: throw IllegalArgumentException("productId is required")
 
-            // Product 정보 조회
-            val productResponse = productClient.getProduct(productId)
-            val product = productResponse.data
-                ?: throw IllegalArgumentException("Product not found: $productId")
+            val document = if (productId != null) {
+                try {
+                    val productResponse = productClient.getProduct(productId)
+                    val product = productResponse.data
 
-            // AuctionDocument 생성
-            val document = AuctionDocument(
-                id = auctionId,
-                productId = productId,
-                title = product.title,
-                description = product.description,
-                category = product.category,
-                condition = product.condition,
-                sellerName = event["sellerName"] as? String ?: "Unknown",
-                sellerId = product.sellerId,
-                startPrice = (event["startPrice"] as Number).toLong(),
-                currentPrice = (event["startPrice"] as Number).toLong(),
-                bidCount = 0,
-                status = event["status"] as? String ?: "PENDING",
-                thumbnailUrl = product.thumbnailUrl,
-                createdAt = parseDateTime(event["createdAt"] as String),
-                endTime = parseDateTime(event["endTime"] as String)
-            )
+                    if (product != null) {
+                        AuctionDocument(
+                            id = auctionId,
+                            productId = productId,
+                            title = product.title,
+                            description = product.description,
+                            category = product.category,
+                            condition = product.condition,
+                            sellerName = event["sellerName"] as? String ?: "Unknown",
+                            sellerId = product.sellerId,
+                            startPrice = (event["startPrice"] as Number).toLong(),
+                            currentPrice = (event["startPrice"] as Number).toLong(),
+                            bidCount = 0,
+                            status = event["status"] as? String ?: "PENDING",
+                            thumbnailUrl = product.thumbnailUrl,
+                            createdAt = parseDateTime(event["createdAt"] as String),
+                            endTime = parseDateTime(event["endTime"] as String)
+                        )
+                    } else {
+                        createDocumentFromEvent(event, auctionId, productId)
+                    }
+                } catch (e: Exception) {
+                    logger.warn("Failed to fetch product $productId, using event data only", e)
+                    createDocumentFromEvent(event, auctionId, productId)
+                }
+            } else {
+                // Product 없이 생성 (관리자 직접 생성 등)
+                createDocumentFromEvent(event, auctionId, 0L)
+            }
 
             auctionSearchRepository.save(document)
             logger.info("Auction document created in ES: $auctionId")
         } catch (e: Exception) {
             logger.error("Failed to handle auction-create event", e)
         }
+    }
+
+    private fun createDocumentFromEvent(
+        event: Map<String, Any>,
+        auctionId: String,
+        productId: Long
+    ): AuctionDocument {
+        return AuctionDocument(
+            id = auctionId,
+            productId = productId,
+            title = event["title"] as? String ?: "Unknown",
+            description = null,
+            category = event["category"] as? String ?: "기타",
+            condition = null,
+            sellerName = event["sellerName"] as? String ?: "Unknown",
+            sellerId = (event["sellerId"] as? Number)?.toLong() ?: 0L,
+            startPrice = (event["startPrice"] as Number).toLong(),
+            currentPrice = (event["startPrice"] as Number).toLong(),
+            bidCount = 0,
+            status = event["status"] as? String ?: "PENDING",
+            thumbnailUrl = event["thumbnailUrl"] as? String,
+            createdAt = parseDateTime(event["createdAt"] as String),
+            endTime = parseDateTime(event["endTime"] as String)
+        )
     }
 
     /**

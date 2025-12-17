@@ -34,4 +34,63 @@ feign:
       default:
         connectTimeout: 5000
         readTimeout: 5000
+  circuitbreaker:
+    enabled: true
+    alphanumeric-ids:
+      enabled: true
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+    instances:
+      service-user:
+        baseConfig: default
+      service-auction:
+        baseConfig: default
+      service-payment:
+        baseConfig: default
+      service-search:
+        baseConfig: default
+  
+  bulkhead:
+    configs:
+      default:
+        maxConcurrentCalls: 100
+        maxWaitDuration: 10ms
+    instances:
+      service-user:
+        baseConfig: default
+        maxConcurrentCalls: 50
+      service-auction:
+        baseConfig: default
+        maxConcurrentCalls: 50
+      service-payment:
+        baseConfig: default
+        maxConcurrentCalls: 30
+      service-search:
+        baseConfig: default
+        maxConcurrentCalls: 30
+  
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 5s
+    instances:
+      service-user:
+        baseConfig: default
+      service-auction:
+        baseConfig: default
+      service-payment:
+        baseConfig: default
+      service-search:
+        baseConfig: default
 

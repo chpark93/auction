@@ -5,7 +5,10 @@ import com.ch.auction.common.ApiResponse
 import org.springframework.cloud.openfeign.FeignClient
 import org.springframework.web.bind.annotation.*
 
-@FeignClient(name = "service-auction")
+@FeignClient(
+    name = "service-auction",
+    fallback = AuctionClientFallback::class
+)
 interface AuctionClient {
     
     @GetMapping("/internal/auctions")

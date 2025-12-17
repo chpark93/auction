@@ -75,7 +75,7 @@ class AdminAuctionService(
 
         val sellerInfoMap = try {
             val batchResponse = userClient.getUsersBatch(
-                ids = sellerIds
+                userIds = sellerIds
             )
             batchResponse.data ?: emptyMap()
         } catch (e: Exception) {

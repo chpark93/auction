@@ -106,11 +106,14 @@ class AuctionAdminService(
     ) {
         val event = mapOf(
             "id" to auction.id!!,
+            "productId" to auction.productId,
             "title" to auction.title,
             "category" to "관리자등록",
             "sellerName" to "Admin",
+            "sellerId" to auction.sellerId,
             "startPrice" to auction.startPrice,
-            "thumbnailUrl" to null,
+            "thumbnailUrl" to auction.thumbnailUrl,
+            "status" to auction.status.name,
             "createdAt" to auction.createdAt.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
             "endTime" to auction.endTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
         )
