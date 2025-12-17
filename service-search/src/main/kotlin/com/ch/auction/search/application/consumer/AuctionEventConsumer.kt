@@ -23,7 +23,9 @@ class AuctionEventConsumer(
      * 경매 생성 이벤트 처리
      */
     @KafkaListener(topics = ["auction-create-topic"], groupId = "search-service-group")
-    fun handleAuctionCreated(message: String) {
+    fun handleAuctionCreated(
+        message: String
+    ) {
         try {
             logger.info("Received auction-create event: $message")
             val event: Map<String, Any> = objectMapper.readValue(message)
@@ -33,7 +35,10 @@ class AuctionEventConsumer(
 
             val document = if (productId != null) {
                 try {
-                    val productResponse = productClient.getProduct(productId)
+                    val productResponse = productClient.getProduct(
+                        productId = productId
+                    )
+
                     val product = productResponse.data
 
                     if (product != null) {
@@ -55,15 +60,28 @@ class AuctionEventConsumer(
                             endTime = parseDateTime(event["endTime"] as String)
                         )
                     } else {
-                        createDocumentFromEvent(event, auctionId, productId)
+                        createDocumentFromEvent(
+                            event = event,
+                            auctionId = auctionId,
+                            productId = productId
+                        )
                     }
                 } catch (e: Exception) {
                     logger.warn("Failed to fetch product $productId, using event data only", e)
-                    createDocumentFromEvent(event, auctionId, productId)
+
+                    createDocumentFromEvent(
+                        event = event,
+                        auctionId = auctionId,
+                        productId = productId
+                    )
                 }
             } else {
-                // Product 없이 생성 (관리자 직접 생성 등)
-                createDocumentFromEvent(event, auctionId, 0L)
+                // TODO: Admin 생성의 경우 -> 추후 productId 관련 처리 필요
+                createDocumentFromEvent(
+                    event = event,
+                    auctionId = auctionId,
+                    productId = 0L
+                )
             }
 
             auctionSearchRepository.save(document)
@@ -73,35 +91,13 @@ class AuctionEventConsumer(
         }
     }
 
-    private fun createDocumentFromEvent(
-        event: Map<String, Any>,
-        auctionId: String,
-        productId: Long
-    ): AuctionDocument {
-        return AuctionDocument(
-            id = auctionId,
-            productId = productId,
-            title = event["title"] as? String ?: "Unknown",
-            description = null,
-            category = event["category"] as? String ?: "기타",
-            condition = null,
-            sellerName = event["sellerName"] as? String ?: "Unknown",
-            sellerId = (event["sellerId"] as? Number)?.toLong() ?: 0L,
-            startPrice = (event["startPrice"] as Number).toLong(),
-            currentPrice = (event["startPrice"] as Number).toLong(),
-            bidCount = 0,
-            status = event["status"] as? String ?: "PENDING",
-            thumbnailUrl = event["thumbnailUrl"] as? String,
-            createdAt = parseDateTime(event["createdAt"] as String),
-            endTime = parseDateTime(event["endTime"] as String)
-        )
-    }
-
     /**
      * 경매 업데이트 이벤트 처리
      */
     @KafkaListener(topics = ["auction-update-topic"], groupId = "search-service-group")
-    fun handleAuctionUpdated(message: String) {
+    fun handleAuctionUpdated(
+        message: String
+    ) {
         try {
             logger.info("Received auction-update event: $message")
             val event: Map<String, Any> = objectMapper.readValue(message)
@@ -171,14 +167,15 @@ class AuctionEventConsumer(
 
             val productId = (event["productId"] as Number).toLong()
 
-            val auctions = auctionSearchRepository.findByProductId(productId)
+            val auctions = auctionSearchRepository.findByProductId(
+                productId = productId
+            )
 
             if (auctions.isEmpty()) {
                 logger.info("No auctions found for product: $productId")
                 return
             }
 
-            // Product 정보 재조회
             val productResponse = productClient.getProduct(productId)
             val product = productResponse.data
                 ?: throw IllegalArgumentException("Product not found: $productId")
@@ -198,6 +195,30 @@ class AuctionEventConsumer(
         } catch (e: Exception) {
             logger.error("Failed to handle product-update event", e)
         }
+    }
+
+    private fun createDocumentFromEvent(
+        event: Map<String, Any>,
+        auctionId: String,
+        productId: Long
+    ): AuctionDocument {
+        return AuctionDocument(
+            id = auctionId,
+            productId = productId,
+            title = event["title"] as? String ?: "Unknown",
+            description = null,
+            category = event["category"] as? String ?: "기타",
+            condition = null,
+            sellerName = event["sellerName"] as? String ?: "Unknown",
+            sellerId = (event["sellerId"] as? Number)?.toLong() ?: 0L,
+            startPrice = (event["startPrice"] as Number).toLong(),
+            currentPrice = (event["startPrice"] as Number).toLong(),
+            bidCount = 0,
+            status = event["status"] as? String ?: "PENDING",
+            thumbnailUrl = event["thumbnailUrl"] as? String,
+            createdAt = parseDateTime(event["createdAt"] as String),
+            endTime = parseDateTime(event["endTime"] as String)
+        )
     }
 
     private fun parseDateTime(

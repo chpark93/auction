@@ -9,14 +9,12 @@ enum class ErrorCode(
     // Common
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "Invalid Input Value"),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Server Error"),
-    ENTITY_NOT_FOUND(HttpStatus.NOT_FOUND, "Entity Not Found"),
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "Access is Denied"),
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "Resource not found"),
     FORBIDDEN(HttpStatus.FORBIDDEN, "Forbidden"),
 
     // User
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "User not found"),
-    EMAIL_DUPLICATION(HttpStatus.BAD_REQUEST, "Email is already in use"),
     EMAIL_DUPLICATED(HttpStatus.BAD_REQUEST, "Email is already in use"),
     PASSWORD_MISMATCH(HttpStatus.UNAUTHORIZED, "Password does not match"),
     POINT_NOT_ENOUGH(HttpStatus.BAD_REQUEST, "Point is not enough"),
@@ -47,8 +45,6 @@ enum class ErrorCode(
 
     // Auth
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "Unauthorized"),
-    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "Invalid Token"),
-    EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "Expired Token"),
     TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "Invalid Token"),
     TOKEN_WRONG_TYPE(HttpStatus.UNAUTHORIZED, "Wrong Type Token"),
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "Expired Token"),
