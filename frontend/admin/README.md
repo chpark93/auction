@@ -144,6 +144,6 @@ function checkAdminRole() {
 `frontend/admin/js/admin-api.js`:
 
 ```javascript
-const GATEWAY_URL = 'http://localhost:8081';
+const GATEWAY_URL = 'http://localhost:8000';
 ```
 

@@ -160,12 +160,88 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  deploy:
+    name: Deploy to Server
+    needs: [docker-build-push, docker-build-frontend]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      
+      - name: Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+      
+      - name: Copy docker-compose.prod.yml to server
+        run: |
+          scp docker-compose.prod.yml ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:~/auction/
+      
+      - name: Deploy to server
+        run: |
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            cd ~/auction
+            
+            # 환경 변수 설정
+            export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+            
+            # 최신 이미지 Pull
+            echo "📦 Pulling latest images..."
+            docker compose -f docker-compose.prod.yml pull
+            
+            # 서비스 재시작 (무중단 배포)
+            echo "🔄 Restarting services..."
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            
+            # 이전 이미지 정리
+            echo "🧹 Cleaning up old images..."
+            docker image prune -af
+            
+            echo "✅ Deployment completed!"
+          EOF
+      
+      - name: Health Check
+        run: |
+          echo "🏥 Performing health check..."
+          sleep 30
+          
+          # Gateway 헬스체크
+          for i in {1..5}; do
+            if curl -f http://${{ secrets.SERVER_HOST }}:8000/actuator/health; then
+              echo "✅ Gateway is healthy"
+              exit 0
+            fi
+            echo "⏳ Waiting for services to start... ($i/5)"
+            sleep 10
+          done
+          
+          echo "❌ Health check failed"
+          exit 1
+      
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            cd ~/auction
+            echo "⚠️ Deployment failed, rolling back..."
+            docker compose -f docker-compose.prod.yml down
+            docker compose -f docker-compose.prod.yml up -d
+          EOF
+
   notify:
     name: Notify Deployment
     needs: 
       - test-and-build
       - docker-build-push
       - docker-build-frontend
+      - deploy
     runs-on: ubuntu-latest
     if: always()
     
@@ -182,16 +258,23 @@ jobs:
           # skipped 상태는 정상 (PR이나 다른 브랜치)
           DOCKER_BUILD_RESULT="${{ needs.docker-build-push.result }}"
           FRONTEND_BUILD_RESULT="${{ needs.docker-build-frontend.result }}"
+          DEPLOY_RESULT="${{ needs.deploy.result }}"
           
           if [ "$DOCKER_BUILD_RESULT" = "failure" ] || [ "$FRONTEND_BUILD_RESULT" = "failure" ]; then
             echo "❌ Docker build failed!"
             exit 1
           fi
           
-          if [ "$DOCKER_BUILD_RESULT" = "success" ] && [ "$FRONTEND_BUILD_RESULT" = "success" ]; then
-            echo "✅ Full deployment successful (main branch)!"
+          if [ "$DEPLOY_RESULT" = "failure" ]; then
+            echo "❌ Deployment to server failed!"
+            exit 1
+          fi
+          
+          if [ "$DOCKER_BUILD_RESULT" = "success" ] && [ "$FRONTEND_BUILD_RESULT" = "success" ] && [ "$DEPLOY_RESULT" = "success" ]; then
+            echo "✅ Full CI/CD pipeline successful!"
+            echo "🚀 Services deployed to production server!"
           elif [ "$DOCKER_BUILD_RESULT" = "skipped" ] && [ "$FRONTEND_BUILD_RESULT" = "skipped" ]; then
             echo "✅ Test & Build successful (PR or non-main branch)!"
           else
-            echo "⚠️ Partial success: Docker=$DOCKER_BUILD_RESULT, Frontend=$FRONTEND_BUILD_RESULT"
+            echo "⚠️ Partial success: Docker=$DOCKER_BUILD_RESULT, Frontend=$FRONTEND_BUILD_RESULT, Deploy=$DEPLOY_RESULT"
           fi

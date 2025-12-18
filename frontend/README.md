@@ -93,7 +93,7 @@ frontend/
 docker compose up -d
 
 # 각 서비스 실행 (IntelliJ IDEA)
-# - server-gateway (Port: 8081)
+# - server-gateway (Port: 8000)
 # - service-user
 # - service-auction
 # - service-payment
@@ -106,7 +106,7 @@ docker compose up -d
 `frontend/js/api.js` 파일에서 Gateway URL을 확인하세요:
 
 ```javascript
-const API_BASE_URL = 'http://localhost:8081';
+const API_BASE_URL = 'http://localhost:8000';
 ```
 
 포트가 다른 경우 수정해주세요.
@@ -207,7 +207,7 @@ allowedOriginPatterns = listOf("*")  // 개발 환경용
 
 ## 📖 API 엔드포인트
 
-모든 API는 Gateway(`http://localhost:8081`)를 통해 호출됩니다.
+모든 API는 Gateway(`http://localhost:8000`)를 통해 호출됩니다.
 
 ### Auth
 - `POST /api/v1/auth/signup` - 회원가입
