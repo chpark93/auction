@@ -1,4 +1,4 @@
-name: Auction Service Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -154,6 +154,7 @@ jobs:
   notify:
     name: Notify Deployment
     needs: 
+      - test-and-build
       - docker-build-push
       - docker-build-frontend
     runs-on: ubuntu-latest
@@ -162,10 +163,26 @@ jobs:
     steps:
       - name: Check deployment status
         run: |
-          if [ "${{ needs.docker-build-push.result }}" = "success" ] && [ "${{ needs.docker-build-frontend.result }}" = "success" ]; then
-            echo "✅ Deployment successful!"
-          else
-            echo "❌ Deployment failed!"
+          # test-and-build는 항상 실행되므로 반드시 success여야 함
+          if [ "${{ needs.test-and-build.result }}" != "success" ]; then
+            echo "❌ Test & Build failed!"
             exit 1
           fi
-
+          
+          # docker-build-push와 docker-build-frontend는 main 브랜치에서만 실행
+          # skipped 상태는 정상 (PR이나 다른 브랜치)
+          DOCKER_BUILD_RESULT="${{ needs.docker-build-push.result }}"
+          FRONTEND_BUILD_RESULT="${{ needs.docker-build-frontend.result }}"
+          
+          if [ "$DOCKER_BUILD_RESULT" = "failure" ] || [ "$FRONTEND_BUILD_RESULT" = "failure" ]; then
+            echo "❌ Docker build failed!"
+            exit 1
+          fi
+          
+          if [ "$DOCKER_BUILD_RESULT" = "success" ] && [ "$FRONTEND_BUILD_RESULT" = "success" ]; then
+            echo "✅ Full deployment successful (main branch)!"
+          elif [ "$DOCKER_BUILD_RESULT" = "skipped" ] && [ "$FRONTEND_BUILD_RESULT" = "skipped" ]; then
+            echo "✅ Test & Build successful (PR or non-main branch)!"
+          else
+            echo "⚠️ Partial success: Docker=$DOCKER_BUILD_RESULT, Frontend=$FRONTEND_BUILD_RESULT"
+          fi
