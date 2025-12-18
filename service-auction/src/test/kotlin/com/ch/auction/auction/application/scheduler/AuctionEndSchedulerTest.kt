@@ -1,6 +1,7 @@
 package com.ch.auction.auction.application.scheduler
 
 import com.ch.auction.auction.application.dto.AuctionRedisDtos
+import com.ch.auction.auction.application.sse.SseEmitterManager
 import com.ch.auction.auction.domain.Auction
 import com.ch.auction.auction.domain.AuctionRepository
 import com.ch.auction.auction.domain.AuctionStatus
@@ -13,14 +14,13 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.kafka.core.KafkaTemplate
-import org.springframework.messaging.simp.SimpMessagingTemplate
 import java.time.LocalDateTime
 
 class AuctionEndSchedulerTest {
 
     private val auctionJpaRepository: AuctionJpaRepository = mockk()
     private val auctionRepository: AuctionRepository = mockk()
-    private val messagingTemplate: SimpMessagingTemplate = mockk()
+    private val sseEmitterManager: SseEmitterManager = mockk()
     private val kafkaTemplate: KafkaTemplate<String, Any> = mockk()
 
     private lateinit var auctionEndScheduler: AuctionEndScheduler
@@ -30,7 +30,7 @@ class AuctionEndSchedulerTest {
         auctionEndScheduler = AuctionEndScheduler(
             auctionJpaRepository = auctionJpaRepository,
             auctionRepository = auctionRepository,
-            messagingTemplate = messagingTemplate,
+            sseEmitterManager = sseEmitterManager,
             kafkaTemplate = kafkaTemplate
         )
     }
@@ -44,7 +44,9 @@ class AuctionEndSchedulerTest {
         val finalPrice = 50000L
 
         val auction = Auction.create(
+            productId = 1L,
             title = "Test Auction",
+            thumbnailUrl = null,
             startPrice = 10000L,
             startTime = LocalDateTime.now().minusHours(2),
             endTime = LocalDateTime.now().minusMinutes(1),
@@ -137,7 +139,9 @@ class AuctionEndSchedulerTest {
         val sellerId = 100L
 
         val auction = Auction.create(
+            productId = 1L,
             title = "Test Auction",
+            thumbnailUrl = null,
             startPrice = 10000L,
             startTime = LocalDateTime.now().minusHours(2),
             endTime = LocalDateTime.now().minusMinutes(1),

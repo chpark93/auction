@@ -20,7 +20,9 @@ class AuctionTest {
 
         // when
         val auction = Auction.create(
+            productId = 1L,
             title = title,
+            thumbnailUrl = "https://example.com/image.jpg",
             startPrice = startPrice,
             startTime = startTime,
             endTime = endTime,
@@ -39,7 +41,9 @@ class AuctionTest {
     fun start_auction() {
         // given
         val auction = Auction.create(
+            productId = 1L,
             title = "Test",
+            thumbnailUrl = null,
             startPrice = 10000L,
             startTime = LocalDateTime.now(),
             endTime = LocalDateTime.now().plusHours(1),
@@ -59,7 +63,9 @@ class AuctionTest {
     fun close_auction_ongoing_to_ended() {
         // given
         val auction = Auction.create(
+            productId = 1L,
             title = "Test",
+            thumbnailUrl = null,
             startPrice = 10000L,
             startTime = LocalDateTime.now(),
             endTime = LocalDateTime.now().plusHours(1),
@@ -79,7 +85,9 @@ class AuctionTest {
     fun close_auction_not_ongoing() {
         // given
         val auction = Auction.create(
+            productId = 1L,
             title = "Test",
+            thumbnailUrl = null,
             startPrice = 10000L,
             startTime = LocalDateTime.now(),
             endTime = LocalDateTime.now().plusHours(1),
@@ -98,7 +106,9 @@ class AuctionTest {
     fun close_auction_ended_to_ended() {
         // given
         val auction = Auction.create(
+            productId = 1L,
             title = "Test",
+            thumbnailUrl = null,
             startPrice = 10000L,
             startTime = LocalDateTime.now(),
             endTime = LocalDateTime.now().plusHours(1),
@@ -120,7 +130,9 @@ class AuctionTest {
     fun complete_auction_ended_to_completed() {
         // given
         val auction = Auction.create(
+            productId = 1L,
             title = "Test",
+            thumbnailUrl = null,
             startPrice = 10000L,
             startTime = LocalDateTime.now(),
             endTime = LocalDateTime.now().plusHours(1),
@@ -142,7 +154,9 @@ class AuctionTest {
     fun fail_auction_ended_to_failed() {
         // given
         val auction = Auction.create(
+            productId = 1L,
             title = "Test",
+            thumbnailUrl = null,
             startPrice = 10000L,
             startTime = LocalDateTime.now(),
             endTime = LocalDateTime.now().plusHours(1),

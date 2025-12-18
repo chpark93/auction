@@ -4,6 +4,7 @@ import com.ch.auction.auction.domain.AuctionLuaResult
 import com.ch.auction.auction.domain.BidResult
 import com.ch.auction.auction.domain.event.BidSuccessEvent
 import com.ch.auction.auction.infrastructure.persistence.AuctionJpaRepository
+import com.ch.auction.auction.infrastructure.persistence.BidJpaRepository
 import com.ch.auction.common.ErrorCode
 import com.ch.auction.exception.BusinessException
 import io.mockk.*
@@ -21,6 +22,7 @@ class AuctionRedisAdapterTest {
     private val redisTemplate: StringRedisTemplate = mockk()
     private val eventPublisher: ApplicationEventPublisher = mockk()
     private val auctionJpaRepository: AuctionJpaRepository = mockk()
+    private val bidJpaRepository: BidJpaRepository = mockk()
 
     private lateinit var auctionRedisAdapter: AuctionRedisAdapter
 
@@ -29,7 +31,8 @@ class AuctionRedisAdapterTest {
         auctionRedisAdapter = AuctionRedisAdapter(
             redisTemplate = redisTemplate,
             eventPublisher = eventPublisher,
-            auctionJpaRepository = auctionJpaRepository
+            auctionJpaRepository = auctionJpaRepository,
+            bidJpaRepository = bidJpaRepository
         )
     }
 
@@ -61,7 +64,8 @@ class AuctionRedisAdapterTest {
             auctionId = auctionId,
             userId = userId,
             amount = amount,
-            requestTime = requestTime
+            requestTime = requestTime,
+            userPoint = 100000L
         )
 
         // then
@@ -95,7 +99,8 @@ class AuctionRedisAdapterTest {
             auctionId = auctionId,
             userId = userId,
             amount = amount,
-            requestTime = requestTime
+            requestTime = requestTime,
+            userPoint = 100000L
         )
 
         // then
@@ -128,7 +133,8 @@ class AuctionRedisAdapterTest {
             auctionId = auctionId, 
             userId = userId, 
             amount = amount, 
-            requestTime = requestTime
+            requestTime = requestTime,
+            userPoint = 100000L
         )
 
         // then
@@ -161,7 +167,8 @@ class AuctionRedisAdapterTest {
             auctionId = auctionId,
             userId = userId,
             amount = amount,
-            requestTime = requestTime
+            requestTime = requestTime,
+            userPoint = 100000L
         )
 
         // then
@@ -191,7 +198,8 @@ class AuctionRedisAdapterTest {
             auctionId = auctionId,
             userId = userId,
             amount = amount,
-            requestTime = requestTime
+            requestTime = requestTime,
+            userPoint = 100000L
         )
 
         // then
@@ -221,7 +229,8 @@ class AuctionRedisAdapterTest {
             auctionId = auctionId,
             userId = userId,
             amount = amount,
-            requestTime = requestTime
+            requestTime = requestTime,
+            userPoint = 5000L  // 입찰 금액보다 적은 포인트
         )
 
         // then
@@ -253,7 +262,8 @@ class AuctionRedisAdapterTest {
                 auctionId = auctionId,
                 userId = userId,
                 amount = amount,
-                requestTime = requestTime
+                requestTime = requestTime,
+                userPoint = 100000L
             )
         }
         assertEquals(ErrorCode.UNEXPECTED_STATE_LUA_SCRIPT, exception.errorCode)
