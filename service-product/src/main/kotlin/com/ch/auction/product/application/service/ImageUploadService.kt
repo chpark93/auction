@@ -37,8 +37,12 @@ class ImageUploadService(
                 contentLength = file.size
             }
 
-            val putObjectRequest = PutObjectRequest(imageProperties.bucket, key, file.inputStream, metadata)
-                .withCannedAcl(CannedAccessControlList.PublicRead)
+            val putObjectRequest = PutObjectRequest(
+                imageProperties.bucket,
+                key,
+                file.inputStream,
+                metadata
+            ).withCannedAcl(CannedAccessControlList.PublicRead)
 
             amazonS3.putObject(putObjectRequest)
             
@@ -93,7 +97,11 @@ class ImageUploadService(
     ): Boolean {
         return try {
             val key = fileUrl.substringAfter("${imageProperties.bucket}/")
-            amazonS3.deleteObject(imageProperties.bucket, key)
+            amazonS3.deleteObject(
+                imageProperties.bucket,
+                key
+            )
+
             logger.info("File deleted successfully: $key")
 
             true
@@ -143,6 +151,7 @@ class ImageUploadService(
     ): String {
         val extension = originalFilename.substringAfterLast(".", "")
         val uuid = UUID.randomUUID().toString()
+
         return if (extension.isNotEmpty()) {
             "$uuid.$extension"
         } else {
@@ -158,8 +167,11 @@ class ImageUploadService(
     ): Boolean {
         return try {
             val key = fileUrl.substringAfter("${imageProperties.bucket}/")
-            amazonS3.doesObjectExist(imageProperties.bucket, key)
-        } catch (e: Exception) {
+            amazonS3.doesObjectExist(
+                imageProperties.bucket,
+                key
+            )
+        } catch (_: Exception) {
             false
         }
     }

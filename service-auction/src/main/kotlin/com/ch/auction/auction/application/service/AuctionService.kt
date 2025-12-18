@@ -457,6 +457,7 @@ class AuctionService(
             )
         } catch (e: Exception) {
             logger.error("Failed to sync auctions to Elasticsearch", e)
+
             return mapOf(
                 "success" to false,
                 "error" to (e.message ?: "Unknown error")
