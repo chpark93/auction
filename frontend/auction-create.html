@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>경매 등록 - 경매 시스템</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        .product-preview {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .product-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">🔨 경매 시스템</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">홈</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="product-register.html">상품 등록</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="product-list.html">내 상품</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="mypage.html">마이페이지</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="logout()">로그아웃</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0"><i class="bi bi-gavel"></i> 경매 등록</h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- 상품 미리보기 -->
+                        <div id="productPreview" class="mb-4">
+                            <div class="text-center py-3">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- 경매 설정 폼 -->
+                        <form id="auctionForm">
+                            <input type="hidden" id="productId">
+
+                            <div class="mb-3">
+                                <label for="startPrice" class="form-label">
+                                    시작 가격 <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="startPrice" required 
+                                           min="1000" step="1000" placeholder="10000">
+                                    <span class="input-group-text">원</span>
+                                </div>
+                                <div class="form-text">최소 1,000원 이상</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="startTime" class="form-label">
+                                    경매 시작 시간 <span class="text-danger">*</span>
+                                </label>
+                                <input type="datetime-local" class="form-control" id="startTime" required>
+                                <div class="form-text">현재 시각 이후로 설정해주세요</div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="endTime" class="form-label">
+                                    경매 종료 시간 <span class="text-danger">*</span>
+                                </label>
+                                <input type="datetime-local" class="form-control" id="endTime" required>
+                                <div class="form-text">시작 시간보다 최소 1시간 이후로 설정해주세요</div>
+                            </div>
+
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> 
+                                경매 등록 후에는 취소할 수 없으니 신중하게 입력해주세요.
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                                    <i class="bi bi-check-circle"></i> 경매 등록
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="history.back()">
+                                    <i class="bi bi-x-circle"></i> 취소
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        let currentUser = null;
+        let currentProduct = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            currentUser = getCurrentUser();
+            if (!currentUser) {
+                alert('로그인이 필요합니다.');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const productId = urlParams.get('productId');
+            
+            if (!productId) {
+                alert('잘못된 접근입니다.');
+                history.back();
+                return;
+            }
+
+            document.getElementById('productId').value = productId;
+            loadProduct(productId);
+            setDefaultTimes();
+        });
+
+        async function loadProduct(productId) {
+            const container = document.getElementById('productPreview');
+            
+            try {
+                const response = await api.get(`/api/v1/products/${productId}`, {
+                    headers: {
+                        'X-User-Id': currentUser.userId
+                    }
+                });
+
+                if (response.data.success) {
+                    currentProduct = response.data.data;
+                    
+                    if (currentProduct.status !== 'DRAFT') {
+                        alert('임시저장 상태의 상품만 경매에 등록할 수 있습니다.');
+                        history.back();
+                        return;
+                    }
+                    
+                    displayProductPreview(currentProduct);
+                } else {
+                    throw new Error('상품 정보를 불러올 수 없습니다.');
+                }
+            } catch (error) {
+                console.error('Load product error:', error);
+                container.innerHTML = `
+                    <div class="alert alert-danger">
+                        상품 정보를 불러오는데 실패했습니다.
+                    </div>
+                `;
+            }
+        }
+
+        function displayProductPreview(product) {
+            const container = document.getElementById('productPreview');
+            const thumbnailUrl = product.images && product.images.length > 0
+                ? product.images[0].imageUrl
+                : 'https://via.placeholder.com/200x200?text=No+Image';
+
+            container.innerHTML = `
+                <div class="product-preview">
+                    <h5 class="mb-3">
+                        <i class="bi bi-box-seam"></i> 등록할 상품
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <img src="${thumbnailUrl}" class="product-image" alt="${product.title}">
+                        </div>
+                        <div class="col-md-8">
+                            <h5>${product.title}</h5>
+                            <p class="text-muted mb-2">
+                                <i class="bi bi-tag"></i> ${getCategoryName(product.category)} · ${getConditionName(product.condition)}
+                            </p>
+                            <p class="mb-0">${product.description.substring(0, 100)}${product.description.length > 100 ? '...' : ''}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function setDefaultTimes() {
+            const now = new Date();
+            
+            // 시작 시간: 현재 + 1시간
+            const startTime = new Date(now.getTime() + 60 * 60 * 1000);
+            document.getElementById('startTime').value = formatDateTimeLocal(startTime);
+            document.getElementById('startTime').min = formatDateTimeLocal(now);
+            
+            // 종료 시간: 시작 + 3일
+            const endTime = new Date(startTime.getTime() + 3 * 24 * 60 * 60 * 1000);
+            document.getElementById('endTime').value = formatDateTimeLocal(endTime);
+        }
+
+        function formatDateTimeLocal(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+
+        function getCategoryName(category) {
+            const names = {
+                'ELECTRONICS': '전자제품',
+                'CLOTHING': '의류',
+                'BOOKS': '도서',
+                'HOME_APPLIANCES': '가전제품',
+                'SPORTS': '스포츠',
+                'ETC': '기타'
+            };
+            return names[category] || category;
+        }
+
+        function getConditionName(condition) {
+            const names = {
+                'NEW': '새 상품',
+                'USED_GOOD': '중고 - 상태 좋음',
+                'USED_BAD': '중고 - 사용감 있음'
+            };
+            return names[condition] || condition;
+        }
+
+        document.getElementById('auctionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const startTime = new Date(document.getElementById('startTime').value);
+            const endTime = new Date(document.getElementById('endTime').value);
+            const now = new Date();
+
+            // 유효성 검사
+            if (startTime < now) {
+                alert('경매 시작 시간은 현재 시각 이후여야 합니다.');
+                return;
+            }
+
+            if (endTime <= startTime) {
+                alert('경매 종료 시간은 시작 시간 이후여야 합니다.');
+                return;
+            }
+
+            const duration = endTime - startTime;
+            if (duration < 60 * 60 * 1000) {
+                alert('경매 기간은 최소 1시간 이상이어야 합니다.');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 등록 중...';
+
+            try {
+                const requestData = {
+                    productId: parseInt(document.getElementById('productId').value),
+                    startPrice: parseInt(document.getElementById('startPrice').value),
+                    startTime: document.getElementById('startTime').value,
+                    endTime: document.getElementById('endTime').value
+                };
+
+                const response = await api.post('/api/v1/seller/auctions', requestData, {
+                    headers: {
+                        'X-User-Id': currentUser.userId
+                    }
+                });
+
+                if (response.data.success) {
+                    alert('경매가 성공적으로 등록되었습니다!');
+                    window.location.href = `detail.html?id=${response.data.data}`;
+                } else {
+                    throw new Error(response.data.error?.message || '경매 등록에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('Create auction error:', error);
+                alert(error.response?.data?.error?.message || error.message || '경매 등록에 실패했습니다.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> 경매 등록';
+            }
+        });
+
+        function logout() {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>
+

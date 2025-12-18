@@ -40,6 +40,14 @@ services:
       - "9200:9200"
     mem_limit: 1g
 
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: auction-zipkin
+    ports:
+      - "9411:9411"
+    environment:
+      - STORAGE_TYPE=mem
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: auction-zookeeper

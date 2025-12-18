@@ -1,13 +1,12 @@
 package com.ch.auction.product.config
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider
-import com.amazonaws.auth.BasicAWSCredentials
-import com.amazonaws.client.builder.AwsClientBuilder
-import com.amazonaws.services.s3.AmazonS3
-import com.amazonaws.services.s3.AmazonS3ClientBuilder
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
+import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.services.s3.S3Client
+import java.net.URI
 
 @Configuration
 class S3Config(
@@ -15,21 +14,17 @@ class S3Config(
 ) {
 
     @Bean
-    fun amazonS3(): AmazonS3 {
-        val credentials = BasicAWSCredentials(
+    fun s3Client(): S3Client {
+        val credentials = AwsBasicCredentials.create(
             imageProperties.accessKey,
             imageProperties.secretKey
         )
 
-        return AmazonS3ClientBuilder.standard()
-            .withEndpointConfiguration(
-                AwsClientBuilder.EndpointConfiguration(
-                    imageProperties.endpoint,
-                    imageProperties.region
-                )
-            )
-            .withCredentials(AWSStaticCredentialsProvider(credentials))
-            .withPathStyleAccessEnabled(true)
+        return S3Client.builder()
+            .endpointOverride(URI.create(imageProperties.endpoint))
+            .region(Region.of(imageProperties.region))
+            .credentialsProvider(StaticCredentialsProvider.create(credentials))
+            .forcePathStyle(true)
             .build()
     }
 }

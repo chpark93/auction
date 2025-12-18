@@ -57,6 +57,18 @@ springdoc:
     tags-sorter: alpha
     operations-sorter: alpha
 
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
+
 feign:
   client:
     config:

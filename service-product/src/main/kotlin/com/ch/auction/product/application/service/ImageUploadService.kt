@@ -1,13 +1,14 @@
 package com.ch.auction.product.application.service
 
-import com.amazonaws.services.s3.AmazonS3
-import com.amazonaws.services.s3.model.CannedAccessControlList
-import com.amazonaws.services.s3.model.ObjectMetadata
-import com.amazonaws.services.s3.model.PutObjectRequest
 import com.ch.auction.product.config.ImageProperties
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
+import software.amazon.awssdk.core.sync.RequestBody
+import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest
+import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import java.io.IOException
 import java.util.*
 import java.util.concurrent.CompletableFuture
@@ -15,7 +16,7 @@ import java.util.concurrent.Executors
 
 @Service
 class ImageUploadService(
-    private val amazonS3: AmazonS3,
+    private val s3Client: S3Client,
     private val imageProperties: ImageProperties
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -32,19 +33,17 @@ class ImageUploadService(
         val key = "$folder/$fileName"
 
         try {
-            val metadata = ObjectMetadata().apply {
-                contentType = file.contentType
-                contentLength = file.size
-            }
+            val putObjectRequest = PutObjectRequest.builder()
+                .bucket(imageProperties.bucket)
+                .key(key)
+                .contentType(file.contentType)
+                .contentLength(file.size)
+                .build()
 
-            val putObjectRequest = PutObjectRequest(
-                imageProperties.bucket,
-                key,
-                file.inputStream,
-                metadata
-            ).withCannedAcl(CannedAccessControlList.PublicRead)
-
-            amazonS3.putObject(putObjectRequest)
+            s3Client.putObject(
+                putObjectRequest,
+                RequestBody.fromInputStream(file.inputStream, file.size)
+            )
             
             val fileUrl = "${imageProperties.endpoint}/${imageProperties.bucket}/$key"
             logger.info("File uploaded successfully: $fileUrl")
@@ -97,10 +96,12 @@ class ImageUploadService(
     ): Boolean {
         return try {
             val key = fileUrl.substringAfter("${imageProperties.bucket}/")
-            amazonS3.deleteObject(
-                imageProperties.bucket,
-                key
-            )
+            val deleteObjectRequest = DeleteObjectRequest.builder()
+                .bucket(imageProperties.bucket)
+                .key(key)
+                .build()
+
+            s3Client.deleteObject(deleteObjectRequest)
 
             logger.info("File deleted successfully: $key")
 
@@ -167,10 +168,13 @@ class ImageUploadService(
     ): Boolean {
         return try {
             val key = fileUrl.substringAfter("${imageProperties.bucket}/")
-            amazonS3.doesObjectExist(
-                imageProperties.bucket,
-                key
-            )
+            val headObjectRequest = HeadObjectRequest.builder()
+                .bucket(imageProperties.bucket)
+                .key(key)
+                .build()
+
+            s3Client.headObject(headObjectRequest)
+            true
         } catch (_: Exception) {
             false
         }

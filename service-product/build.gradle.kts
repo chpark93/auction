@@ -11,7 +11,9 @@ dependencies {
     
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.10")
     
-    implementation("com.amazonaws:aws-java-sdk-s3:1.12.795")
+    // AWS S3 SDK v2 for MinIO compatibility
+    implementation(platform("software.amazon.awssdk:bom:2.20.26"))
+    implementation("software.amazon.awssdk:s3")
     
     runtimeOnly("com.mysql:mysql-connector-j")
 

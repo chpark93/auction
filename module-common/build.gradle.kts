@@ -18,4 +18,8 @@ dependencies {
 
     // Kafka
     implementation("org.springframework.kafka:spring-kafka")
+    
+    // Distributed Tracing
+    implementation("io.micrometer:micrometer-tracing-bridge-brave")
+    implementation("io.zipkin.reporter2:zipkin-reporter-brave")
 }
