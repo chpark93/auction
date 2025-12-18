@@ -1,3 +1,28 @@
+plugins {
+    id("com.google.cloud.tools.jib")
+}
+
+jib {
+    from {
+        image = "eclipse-temurin:21-jre-alpine"
+    }
+    to {
+        image = System.getenv("DOCKER_IMAGE_PREFIX")?.let { "$it-server-gateway" }
+            ?: "auction-server-gateway"
+    }
+    container {
+        jvmFlags = listOf(
+            "-Xms512m",
+            "-Xmx1024m",
+            "-XX:+UseContainerSupport"
+        )
+        ports = listOf("8081")
+        environment = mapOf(
+            "SPRING_PROFILES_ACTIVE" to "prod"
+        )
+    }
+}
+
 dependencies {
     implementation(project(":module-common")) {
         exclude(group = "org.springframework.boot", module = "spring-boot-starter-web")
