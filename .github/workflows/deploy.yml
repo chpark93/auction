@@ -164,29 +164,43 @@ jobs:
     name: Deploy to Server
     needs: [docker-build-push, docker-build-frontend]
     runs-on: ubuntu-latest
-    # 서버가 설정되어 있을 때만 배포 실행
-    # 서버 추가 시: GitHub Secrets에 SERVER_HOST, SERVER_USER, SSH_PRIVATE_KEY 설정
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.SERVER_HOST != ''
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
+      - name: Check if server is configured
+        id: check_server
+        run: |
+          if [ -z "${{ secrets.SERVER_HOST }}" ]; then
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "ℹ️  Server not configured - deployment will be skipped"
+          else
+            echo "configured=true" >> $GITHUB_OUTPUT
+            echo "✓ Server configured - proceeding with deployment"
+          fi
+      
       - name: Checkout code
+        if: steps.check_server.outputs.configured == 'true'
         uses: actions/checkout@v4
       
       - name: Setup SSH
+        if: steps.check_server.outputs.configured == 'true'
         uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
       
       - name: Add server to known hosts
+        if: steps.check_server.outputs.configured == 'true'
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
       
       - name: Copy docker-compose.prod.yml to server
+        if: steps.check_server.outputs.configured == 'true'
         run: |
           scp docker-compose.prod.yml ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:~/auction/
       
       - name: Deploy to server
+        if: steps.check_server.outputs.configured == 'true'
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
             cd ~/auction
@@ -210,6 +224,7 @@ jobs:
           EOF
       
       - name: Health Check
+        if: steps.check_server.outputs.configured == 'true'
         run: |
           echo "🏥 Performing health check..."
           sleep 30
@@ -228,7 +243,7 @@ jobs:
           exit 1
       
       - name: Rollback on failure
-        if: failure()
+        if: failure() && steps.check_server.outputs.configured == 'true'
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
             cd ~/auction
@@ -265,7 +280,6 @@ jobs:
             exit 1
           fi
           
-          # deploy는 서버가 설정되지 않으면 skipped
           if [ "$DEPLOY_RESULT" = "failure" ]; then
             echo "❌ Deployment to server failed!"
             exit 1
@@ -274,9 +288,14 @@ jobs:
           if [ "$DOCKER_BUILD_RESULT" = "success" ] && [ "$FRONTEND_BUILD_RESULT" = "success" ] && [ "$DEPLOY_RESULT" = "success" ]; then
             echo "✅ Full CI/CD pipeline successful!"
             echo "🚀 Services deployed to production server!"
-          elif [ "$DOCKER_BUILD_RESULT" = "success" ] && [ "$FRONTEND_BUILD_RESULT" = "success" ] && [ "$DEPLOY_RESULT" = "skipped" ]; then
+          elif [ "$DOCKER_BUILD_RESULT" = "success" ] && [ "$FRONTEND_BUILD_RESULT" = "success" ]; then
             echo "✅ Docker images built and pushed to Docker Hub!"
             echo "ℹ️  Server deployment skipped (SERVER_HOST not configured)"
+            echo ""
+            echo "📝 To enable automatic deployment:"
+            echo "   1. Set up a server (Ubuntu 22.04 + Docker)"
+            echo "   2. Add GitHub Secrets: SERVER_HOST, SERVER_USER, SSH_PRIVATE_KEY"
+            echo "   3. Push to main branch again"
           elif [ "$DOCKER_BUILD_RESULT" = "skipped" ] && [ "$FRONTEND_BUILD_RESULT" = "skipped" ]; then
             echo "✅ Test & Build successful (PR or non-main branch)!"
           else
