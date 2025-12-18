@@ -104,14 +104,22 @@ jobs:
       
       - name: Build and Push Docker image with Jib
         run: |
+          # 서비스 이름에서 'server-'와 'service-' 접두사 제거
+          SERVICE_NAME=${{ matrix.service }}
+          IMAGE_NAME=${SERVICE_NAME#server-}
+          IMAGE_NAME=${IMAGE_NAME#service-}
+          
           ./gradlew :${{ matrix.service }}:jib \
-            -Djib.to.image=${{ env.DOCKER_IMAGE_PREFIX }}-${{ matrix.service }}:${{ steps.version.outputs.version }}-${{ steps.version.outputs.short_sha }} \
+            -Djib.to.image=${{ env.DOCKER_IMAGE_PREFIX }}-${IMAGE_NAME}:${{ steps.version.outputs.version }}-${{ steps.version.outputs.short_sha }} \
             -Djib.to.tags=latest
       
       - name: Image digest
         run: |
-          echo "Image pushed: ${{ env.DOCKER_IMAGE_PREFIX }}-${{ matrix.service }}:${{ steps.version.outputs.version }}-${{ steps.version.outputs.short_sha }}"
-          echo "Image pushed: ${{ env.DOCKER_IMAGE_PREFIX }}-${{ matrix.service }}:latest"
+          SERVICE_NAME=${{ matrix.service }}
+          IMAGE_NAME=${SERVICE_NAME#server-}
+          IMAGE_NAME=${IMAGE_NAME#service-}
+          echo "Image pushed: ${{ env.DOCKER_IMAGE_PREFIX }}-${IMAGE_NAME}:${{ steps.version.outputs.version }}-${{ steps.version.outputs.short_sha }}"
+          echo "Image pushed: ${{ env.DOCKER_IMAGE_PREFIX }}-${IMAGE_NAME}:latest"
 
   docker-build-frontend:
     name: Docker Build & Push Frontend
