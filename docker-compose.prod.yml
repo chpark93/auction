@@ -104,6 +104,7 @@ services:
   
   server-discovery:
     image: ${DOCKER_USERNAME}/auction-discovery:latest
+    platform: linux/amd64
     container_name: server-discovery
     ports:
       - "8761:8761"
@@ -115,6 +116,7 @@ services:
 
   server-gateway:
     image: ${DOCKER_USERNAME}/auction-gateway:latest
+    platform: linux/amd64
     container_name: server-gateway
     ports:
       - "8000:8000"
@@ -129,6 +131,7 @@ services:
 
   service-user:
     image: ${DOCKER_USERNAME}/auction-user:latest
+    platform: linux/amd64
     container_name: service-user
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/users?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
@@ -149,6 +152,7 @@ services:
 
   service-auction:
     image: ${DOCKER_USERNAME}/auction-auction:latest
+    platform: linux/amd64
     container_name: service-auction
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/auctions?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
@@ -169,6 +173,7 @@ services:
 
   service-payment:
     image: ${DOCKER_USERNAME}/auction-payment:latest
+    platform: linux/amd64
     container_name: service-payment
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/payments?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
@@ -186,6 +191,7 @@ services:
 
   service-search:
     image: ${DOCKER_USERNAME}/auction-search:latest
+    platform: linux/amd64
     container_name: service-search
     environment:
       - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
@@ -201,6 +207,7 @@ services:
 
   service-chat:
     image: ${DOCKER_USERNAME}/auction-chat:latest
+    platform: linux/amd64
     container_name: service-chat
     environment:
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/chat_db
@@ -219,6 +226,7 @@ services:
 
   service-admin:
     image: ${DOCKER_USERNAME}/auction-admin:latest
+    platform: linux/amd64
     container_name: service-admin
     environment:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://server-discovery:8761/eureka/
@@ -228,6 +236,7 @@ services:
 
   service-product:
     image: ${DOCKER_USERNAME}/auction-product:latest
+    platform: linux/amd64
     container_name: service-product
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/products?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
