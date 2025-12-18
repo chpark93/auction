@@ -49,9 +49,7 @@ class AuctionRedisAdapterTest {
             redisTemplate.execute<String>(
                 any<RedisScript<String>>(),
                 any<List<String>>(),
-                any<String>(),
-                any<String>(),
-                any<String>()
+                *anyVararg()
             )
         } returns luaResult
 
@@ -88,9 +86,7 @@ class AuctionRedisAdapterTest {
             redisTemplate.execute<String>(
                 any<RedisScript<String>>(),
                 any<List<String>>(),
-                any<String>(),
-                any<String>(),
-                any<String>()
+                *anyVararg()
             )
         } returns AuctionLuaResult.PRICE_TOO_LOW.code
 
@@ -122,9 +118,7 @@ class AuctionRedisAdapterTest {
             redisTemplate.execute<String>(
                 any<RedisScript<String>>(),
                 any<List<String>>(),
-                any<String>(),
-                any<String>(),
-                any<String>()
+                *anyVararg()
             )
         } returns AuctionLuaResult.AUCTION_ENDED.code
 
@@ -156,9 +150,7 @@ class AuctionRedisAdapterTest {
             redisTemplate.execute<String>(
                 any<RedisScript<String>>(),
                 any<List<String>>(),
-                any<String>(),
-                any<String>(),
-                any<String>()
+                *anyVararg()
             )
         } returns AuctionLuaResult.AUCTION_NOT_FOUND.code
 
@@ -187,9 +179,7 @@ class AuctionRedisAdapterTest {
             redisTemplate.execute<String>(
                 any<RedisScript<String>>(),
                 any<List<String>>(),
-                any<String>(),
-                any<String>(),
-                any<String>()
+                *anyVararg()
             )
         } returns AuctionLuaResult.SELF_BIDDING.code
 
@@ -218,9 +208,7 @@ class AuctionRedisAdapterTest {
             redisTemplate.execute<String>(
                 any<RedisScript<String>>(),
                 any<List<String>>(),
-                any<String>(),
-                any<String>(),
-                any<String>()
+                *anyVararg()
             )
         } returns AuctionLuaResult.NOT_ENOUGH_POINT.code
 
@@ -250,9 +238,7 @@ class AuctionRedisAdapterTest {
             redisTemplate.execute<String>(
                 any<RedisScript<String>>(),
                 any<List<String>>(),
-                any<String>(),
-                any<String>(),
-                any<String>()
+                *anyVararg()
             )
         } returns invalidResult
 

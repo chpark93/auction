@@ -1,11 +1,11 @@
 package com.ch.auction.auction.application.scheduler
 
 import com.ch.auction.auction.application.dto.AuctionRedisDtos
-import com.ch.auction.auction.application.sse.SseEmitterManager
 import com.ch.auction.auction.domain.Auction
 import com.ch.auction.auction.domain.AuctionRepository
 import com.ch.auction.auction.domain.AuctionStatus
 import com.ch.auction.auction.infrastructure.persistence.AuctionJpaRepository
+import com.ch.auction.auction.infrastructure.sse.SseEmitterManager
 import com.ch.auction.common.event.AuctionEndedEvent
 import com.ch.auction.common.event.NotificationEvent
 import com.ch.auction.common.event.NotificationType
@@ -81,7 +81,7 @@ class AuctionEndSchedulerTest {
             kafkaTemplate.send(any<String>(), any<Any>())
         } returns mockk(relaxed = true)
         every {
-            messagingTemplate.convertAndSend(any<String>(), any<Any>())
+            sseEmitterManager.sendToAuction(any(), any(), any())
         } just Runs
         every {
             auctionRepository.expireAuctionRedisInfo(
@@ -176,7 +176,7 @@ class AuctionEndSchedulerTest {
             kafkaTemplate.send(any<String>(), any<Any>())
         } returns mockk(relaxed = true)
         every {
-            messagingTemplate.convertAndSend(any<String>(), any<Any>())
+            sseEmitterManager.sendToAuction(any(), any(), any())
         } just Runs
         every {
             auctionRepository.expireAuctionRedisInfo(

@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.data.domain.PageImpl
-import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
@@ -34,9 +33,13 @@ class AuctionSearchControllerTest {
         // given
         val document = AuctionDocument(
             id = "1",
+            productId = 1L,
             title = "Test Item",
+            description = null,
             category = "ELECTRONICS",
+            condition = "NEW",
             sellerName = "Seller",
+            sellerId = 1L,
             startPrice = 1000,
             currentPrice = 2000,
             bidCount = 1,

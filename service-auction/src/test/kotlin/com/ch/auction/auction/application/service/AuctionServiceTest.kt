@@ -1,6 +1,8 @@
 package com.ch.auction.auction.application.service
 
+import com.ch.auction.auction.domain.Auction
 import com.ch.auction.auction.domain.AuctionRepository
+import com.ch.auction.auction.domain.AuctionStatus
 import com.ch.auction.auction.domain.BidResult
 import com.ch.auction.auction.infrastructure.client.product.ProductClient
 import com.ch.auction.auction.infrastructure.client.search.SearchClient
@@ -12,17 +14,20 @@ import com.ch.auction.auction.infrastructure.redis.SellerInfoCacheRepository
 import com.ch.auction.auction.infrastructure.redis.UserStatusCacheRepository
 import com.ch.auction.common.ApiResponse
 import com.ch.auction.common.ErrorCode
+import com.ch.auction.common.dto.PointDTOs
 import com.ch.auction.common.enums.UserStatus
 import com.ch.auction.exception.BusinessException
 import io.mockk.*
-import io.mockk.junit5.MockKExtension
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
+import io.mockk.junit5.MockKExtension
+import java.time.LocalDateTime
+import java.util.Optional
 
 @ExtendWith(MockKExtension::class)
-@org.junit.jupiter.api.Disabled("테스트 업데이트 필요 - userPoint 파라미터 추가")
 class AuctionServiceTest {
 
     private val auctionRepository: AuctionRepository = mockk()
@@ -34,18 +39,41 @@ class AuctionServiceTest {
     private val productClient: ProductClient = mockk()
     private val bidCancellationService: BidCancellationService = mockk()
     private val searchClient: SearchClient = mockk()
+    
+    private lateinit var auctionService: AuctionService
 
-    private val auctionService = AuctionService(
-        auctionRepository = auctionRepository,
-        auctionJpaRepository = auctionJpaRepository,
-        bidJpaRepository = bidJpaRepository,
-        sellerInfoCacheRepository = sellerInfoCacheRepository,
-        userStatusCacheRepository = userStatusCacheRepository,
-        userClient = userClient,
-        productClient = productClient,
-        bidCancellationService = bidCancellationService,
-        searchClient = searchClient
-    )
+    private val testAuction = Auction.create(
+        productId = 1L,
+        sellerId = 999L,
+        title = "Test Auction",
+        thumbnailUrl = null,
+        startPrice = 1000L,
+        startTime = LocalDateTime.now().minusDays(1),
+        endTime = LocalDateTime.now().plusDays(1)
+    ).apply {
+        val idField = Auction::class.java.getDeclaredField("id")
+        idField.isAccessible = true
+        idField.set(this, 1L)
+        
+        val statusField = Auction::class.java.getDeclaredField("status")
+        statusField.isAccessible = true
+        statusField.set(this, AuctionStatus.ONGOING)
+    }
+
+    @BeforeEach
+    fun setUp() {
+        auctionService = AuctionService(
+            auctionRepository = auctionRepository,
+            auctionJpaRepository = auctionJpaRepository,
+            bidJpaRepository = bidJpaRepository,
+            sellerInfoCacheRepository = sellerInfoCacheRepository,
+            userStatusCacheRepository = userStatusCacheRepository,
+            userClient = userClient,
+            productClient = productClient,
+            bidCancellationService = bidCancellationService,
+            searchClient = searchClient
+        )
+    }
 
     @Test
     fun place_bid_cached_user_status_active() {
@@ -53,45 +81,62 @@ class AuctionServiceTest {
         val auctionId = 1L
         val userId = 100L
         val amount = 10000L
-        val requestTime = 1234567890L
 
-        every {
-            userStatusCacheRepository.getUserStatus(
-                userId = userId
+        every { auctionJpaRepository.findById(auctionId) } returns Optional.of(testAuction)
+        every { auctionRepository.getAuctionRedisInfo(auctionId) } returns mockk()
+        every { userStatusCacheRepository.getUserStatus(userId) } returns "ACTIVE"
+        every { userClient.getUserPoint(any(), any()) } returns ApiResponse.ok(
+            PointDTOs.PointResponse(
+                userId = userId,
+                totalPoint = 100000L,
+                lockedPoint = 0L,
+                availablePoint = 100000L
             )
-        } returns "ACTIVE"
-        
+        )
         every {
             auctionRepository.tryBid(
                 auctionId = auctionId,
                 userId = userId,
                 amount = amount,
-                requestTime = any()
+                requestTime = any(),
+                userPoint = any()
             )
         } returns BidResult.Success(amount)
+        every {
+            userClient.holdPoint(
+                userId = userId,
+                request = any()
+            )
+        } returns ApiResponse.ok(Unit)
 
         // when
-        val result = auctionService.placeBid(
-            auctionId = auctionId,
-            userId = userId,
-            amount = amount
-        )
+        val result = auctionService.placeBid(auctionId, userId, amount)
 
         // then
         assertEquals(amount, result)
-        verify(exactly = 0) {
-            userClient.getUserInfo(
-                userId = any()
-            )
+        verify(exactly = 0) { userClient.getUserInfo(userId) }
+        verify(exactly = 1) { auctionRepository.tryBid(any(), any(), any(), any(), any()) }
+        verify(exactly = 1) { userClient.holdPoint(any(), any()) }
+    }
+
+    @Test
+    fun place_bid_cached_user_status_banned() {
+        // given
+        val auctionId = 1L
+        val userId = 100L
+        val amount = 10000L
+
+        every { auctionJpaRepository.findById(auctionId) } returns Optional.of(testAuction)
+        every { auctionRepository.getAuctionRedisInfo(auctionId) } returns mockk()
+        every { userStatusCacheRepository.getUserStatus(userId) } returns "BANNED"
+
+        // when & then
+        val exception = assertThrows<BusinessException> {
+            auctionService.placeBid(auctionId, userId, amount)
         }
-        verify(exactly = 1) {
-            auctionRepository.tryBid(
-                auctionId = auctionId,
-                userId = userId,
-                amount = amount,
-                requestTime = any()
-            )
-        }
+
+        assertEquals(ErrorCode.USER_NOT_ACTIVE, exception.errorCode)
+        verify(exactly = 0) { auctionRepository.tryBid(any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -101,202 +146,102 @@ class AuctionServiceTest {
         val userId = 100L
         val amount = 10000L
 
-        // cache miss
-        every {
-            userStatusCacheRepository.getUserStatus(
-                userId = userId
+        every { auctionJpaRepository.findById(auctionId) } returns Optional.of(testAuction)
+        every { auctionRepository.getAuctionRedisInfo(auctionId) } returns mockk()
+        every { userStatusCacheRepository.getUserStatus(userId) } returns null
+        every { userClient.getUserInfo(userId) } returns ApiResponse.ok(
+            UserClientDtos.UserResponse(
+                id = userId,
+                email = "test@test.com",
+                nickname = "tester",
+                name = "Test",
+                role = "USER",
+                status = UserStatus.ACTIVE
             )
-        } returns null
-        
-        // feign call
-        val userResponse = UserClientDtos.UserResponse(
-            id = userId,
-            email = "test@test.com",
-            nickname = "tester",
-            name = "Test",
-            role = "USER",
-            status = UserStatus.ACTIVE
         )
-
-        every {
-            userClient.getUserInfo(
-                userId = userId
-            )
-        } returns ApiResponse.ok(userResponse)
-
-        // cache save
-        every {
-            userStatusCacheRepository.saveUserStatus(
+        every { userStatusCacheRepository.saveUserStatus(userId, "ACTIVE") } just Runs
+        every { userClient.getUserPoint(any(), any()) } returns ApiResponse.ok(
+            PointDTOs.PointResponse(
                 userId = userId,
-                status = "ACTIVE"
+                totalPoint = 100000L,
+                lockedPoint = 0L,
+                availablePoint = 100000L
             )
-        } just Runs
-
-        every { 
+        )
+        every {
             auctionRepository.tryBid(
                 auctionId = auctionId,
                 userId = userId,
                 amount = amount,
-                requestTime = any()
+                requestTime = any(),
+                userPoint = any()
             )
         } returns BidResult.Success(amount)
+        every {
+            userClient.holdPoint(
+                userId = userId,
+                request = any()
+            )
+        } returns ApiResponse.ok(Unit)
 
         // when
-        val result = auctionService.placeBid(
-            auctionId = auctionId,
-            userId = userId,
-            amount = amount
-        )
+        val result = auctionService.placeBid(auctionId, userId, amount)
 
         // then
         assertEquals(amount, result)
-        verify(exactly = 1) {
-            userClient.getUserInfo(
-                userId = userId
-            )
-        }
-        verify(exactly = 1) {
-            userStatusCacheRepository.saveUserStatus(
-                userId = userId,
-                status = "ACTIVE"
-            )
-        }
-        verify(exactly = 1) {
-            auctionRepository.tryBid(
-                auctionId = auctionId,
-                userId = userId,
-                amount = amount,
-                requestTime = any()
-            )
-        }
-    }
-
-    @Test
-    fun place_bid_cached_user_status_banned() {
-        // given
-        val userId = 100L
-        every {
-            userStatusCacheRepository.getUserStatus(
-                userId = userId
-            )
-        } returns "BANNED"
-
-        // when & then
-        val exception = assertThrows(BusinessException::class.java) {
-            auctionService.placeBid(
-                auctionId = 1L,
-                userId = userId,
-                amount = 10000L
-            )
-        }
-
-        assertEquals(ErrorCode.USER_NOT_ACTIVE, exception.errorCode)
-        verify(exactly = 0) {
-            userClient.getUserInfo(
-                userId = any()
-            )
-        }
-        verify(exactly = 0) {
-            auctionRepository.tryBid(
-                auctionId = any(),
-                userId = any(),
-                amount = any(),
-                requestTime = any()
-            )
-        }
+        verify(exactly = 1) { userClient.getUserInfo(userId) }
+        verify(exactly = 1) { auctionRepository.tryBid(any(), any(), any(), any(), any()) }
     }
 
     @Test
     fun place_bid_none_cached_user_status_banned() {
         // given
+        val auctionId = 1L
         val userId = 100L
-        every {
-            userStatusCacheRepository.getUserStatus(
-                userId = userId
-            )
-        } returns null
+        val amount = 10000L
 
-        val userResponse = UserClientDtos.UserResponse(
-            id = userId,
-            email = "test@test.com",
-            nickname = "tester",
-            name = "Test",
-            role = "USER",
-            status = UserStatus.BANNED
+        every { auctionJpaRepository.findById(auctionId) } returns Optional.of(testAuction)
+        every { auctionRepository.getAuctionRedisInfo(auctionId) } returns mockk()
+        every { userStatusCacheRepository.getUserStatus(userId) } returns null
+        every { userClient.getUserInfo(userId) } returns ApiResponse.ok(
+            UserClientDtos.UserResponse(
+                id = userId,
+                email = "test@test.com",
+                nickname = "tester",
+                name = "Test",
+                role = "USER",
+                status = UserStatus.BANNED
+            )
         )
-        every {
-            userClient.getUserInfo(
-                userId = userId
-            )
-        } returns ApiResponse.ok(userResponse)
-        
-        // 비활성 상태 캐싱
-        every {
-            userStatusCacheRepository.saveUserStatus(
-                userId = userId,
-                status = "BANNED"
-            )
-        } just Runs
+        every { userStatusCacheRepository.saveUserStatus(userId, "BANNED") } just Runs
 
         // when & then
-        val exception = assertThrows(BusinessException::class.java) {
-            auctionService.placeBid(
-                auctionId = 1L,
-                userId = userId,
-                amount = 10000L
-            )
+        val exception = assertThrows<BusinessException> {
+            auctionService.placeBid(auctionId, userId, amount)
         }
 
         assertEquals(ErrorCode.USER_NOT_ACTIVE, exception.errorCode)
-        verify(exactly = 1) {
-            userStatusCacheRepository.saveUserStatus(
-                userId = userId,
-                status = "BANNED"
-            )
-        }
-        verify(exactly = 0) {
-            auctionRepository.tryBid(
-                auctionId = any(),
-                userId = any(),
-                amount = any(),
-                requestTime = any()
-            )
-        }
+        verify(exactly = 0) { auctionRepository.tryBid(any(), any(), any(), any(), any()) }
     }
 
     @Test
     fun place_bid_fail_feign_call_user_status() {
         // given
+        val auctionId = 1L
         val userId = 100L
-        every {
-            userStatusCacheRepository.getUserStatus(
-                userId = userId
-            )
-        } returns null
-        every {
-            userClient.getUserInfo(
-                userId = userId
-            )
-        } throws RuntimeException("Circuit Breaker Open")
+        val amount = 10000L
+
+        every { auctionJpaRepository.findById(auctionId) } returns Optional.of(testAuction)
+        every { auctionRepository.getAuctionRedisInfo(auctionId) } returns mockk()
+        every { userStatusCacheRepository.getUserStatus(userId) } returns null
+        every { userClient.getUserInfo(userId) } throws RuntimeException("Feign call failed")
 
         // when & then
-        val exception = assertThrows(BusinessException::class.java) {
-            auctionService.placeBid(
-                auctionId = 1L,
-                userId = userId,
-                amount = 10000L
-            )
+        val exception = assertThrows<BusinessException> {
+            auctionService.placeBid(auctionId, userId, amount)
         }
 
         assertEquals(ErrorCode.USER_SERVICE_UNAVAILABLE, exception.errorCode)
-        verify(exactly = 0) {
-            auctionRepository.tryBid(
-                auctionId = any(),
-                userId = any(),
-                amount = any(),
-                requestTime = any()
-            )
-        }
+        verify(exactly = 0) { auctionRepository.tryBid(any(), any(), any(), any(), any()) }
     }
 }
-

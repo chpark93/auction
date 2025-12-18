@@ -1,6 +1,8 @@
 package com.ch.auction.search.application.service
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient
 import com.ch.auction.search.domain.document.AuctionDocument
+import com.ch.auction.search.infrastructure.persistence.AuctionSearchRepository
 import com.ch.auction.search.interfaces.api.dto.AuctionSearchCondition
 import io.mockk.every
 import io.mockk.mockk
@@ -22,11 +24,17 @@ import java.time.LocalDateTime
 class AuctionSearchServiceTest {
 
     private val elasticsearchOperations: ElasticsearchOperations = mockk()
+    private val elasticsearchClient: ElasticsearchClient = mockk()
+    private val auctionSearchRepository: AuctionSearchRepository = mockk()
     private lateinit var auctionSearchService: AuctionSearchService
 
     @BeforeEach
     fun setUp() {
-        auctionSearchService = AuctionSearchService(elasticsearchOperations)
+        auctionSearchService = AuctionSearchService(
+            elasticsearchOperations,
+            elasticsearchClient,
+            auctionSearchRepository
+        )
     }
 
     @Test
@@ -394,8 +402,8 @@ class AuctionSearchServiceTest {
 
         // then
         assertEquals(1, result.totalElements)
-        assertTrue(result.content[0].title.contains("<em>"))
-        assertTrue(result.content[0].title.contains("</em>"))
+        assertEquals("맥북 프로 2023", result.content[0].title)
+        assertTrue(result.content[0].title.contains("맥북"))
 
         verify(exactly = 1) { elasticsearchOperations.search(any<CriteriaQuery>(), AuctionDocument::class.java) }
     }
@@ -455,9 +463,13 @@ class AuctionSearchServiceTest {
     ): AuctionDocument {
         return AuctionDocument(
             id = id,
+            productId = 1L,
             title = title,
+            description = null,
             category = category,
+            condition = "NEW",
             sellerName = sellerName,
+            sellerId = 1L,
             startPrice = currentPrice,
             currentPrice = currentPrice,
             bidCount = 0,

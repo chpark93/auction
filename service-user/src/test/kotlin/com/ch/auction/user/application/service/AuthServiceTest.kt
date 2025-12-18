@@ -3,6 +3,7 @@ package com.ch.auction.user.application.service
 import com.ch.auction.common.ErrorCode
 import com.ch.auction.common.dto.AuthDTOs
 import com.ch.auction.common.enums.UserRole
+import com.ch.auction.common.enums.UserStatus
 import com.ch.auction.domain.auth.AuthTokenClaims
 import com.ch.auction.domain.auth.port.AuthTokenIssuer
 import com.ch.auction.domain.auth.port.AuthTokenParser
@@ -27,6 +28,7 @@ class AuthServiceTest {
     private val authTokenParser: AuthTokenParser = mockk()
     private val refreshTokenRepository: RefreshTokenRepository = mockk()
     private val tokenBlacklistRepository: TokenBlacklistRepository = mockk()
+    private val userStatusCacheRepository: com.ch.auction.user.infrastructure.redis.UserStatusCacheRepository = mockk(relaxed = true)
 
     private lateinit var authService: AuthService
 
@@ -38,7 +40,8 @@ class AuthServiceTest {
             authTokenIssuer = authTokenIssuer,
             authTokenParser = authTokenParser,
             refreshTokenRepository = refreshTokenRepository,
-            tokenBlacklistRepository = tokenBlacklistRepository
+            tokenBlacklistRepository = tokenBlacklistRepository,
+            userStatusCacheRepository = userStatusCacheRepository
         )
     }
 
@@ -128,6 +131,9 @@ class AuthServiceTest {
             user.role
         } returns UserRole.ROLE_USER
         every {
+            user.status
+        } returns UserStatus.ACTIVE
+        every {
             user.checkPassword(request.password, passwordEncoder)
         } returns true
 
@@ -154,6 +160,12 @@ class AuthServiceTest {
             refreshTokenRepository.save(
                 email = any(),
                 refreshToken = any()
+            )
+        } just Runs
+        every {
+            userStatusCacheRepository.saveUserStatus(
+                userId = any(),
+                status = any()
             )
         } just Runs
 
@@ -251,6 +263,9 @@ class AuthServiceTest {
         every {
             user.role
         } returns UserRole.ROLE_USER
+        every {
+            user.status
+        } returns UserStatus.ACTIVE
 
         every {
             authTokenParser.parse(
@@ -285,6 +300,12 @@ class AuthServiceTest {
             refreshTokenRepository.save(
                 email = any(),
                 refreshToken = any()
+            )
+        } just Runs
+        every {
+            userStatusCacheRepository.saveUserStatus(
+                userId = any(),
+                status = any()
             )
         } just Runs
 
