@@ -10,8 +10,6 @@ import com.ch.auction.domain.auth.port.AuthTokenParser
 import com.ch.auction.domain.repository.RefreshTokenRepository
 import com.ch.auction.domain.repository.TokenBlacklistRepository
 import com.ch.auction.exception.BusinessException
-import com.ch.auction.user.domain.User
-import com.ch.auction.user.infrastructure.persistence.UserRepository
 import io.mockk.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
