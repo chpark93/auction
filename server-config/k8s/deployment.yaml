@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server-config
+  labels:
+    app: server-config
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: server-config
+  template:
+    metadata:
+      labels:
+        app: server-config
+    spec:
+      containers:
+        - name: server-config
+          image: auction-server-config:latest # 실제 이미지 주소로 변경 필요
+          ports:
+            - containerPort: 8888
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "native,k8s" # k8s 프로필을 추가하여 쿠버네티스 환경임을 명시
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: "http://server-discovery.default.svc.cluster.local:8761/eureka/"
+            - name: SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS
+              value: "file:///config-repo" # 마운트된 볼륨 경로
+          volumeMounts:
+            - name: config-repo-volume
+              mountPath: /config-repo
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8888
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8888
+            initialDelaySeconds: 20
+            periodSeconds: 10
+      volumes:
+        - name: config-repo-volume
+          configMap:
+            name: config-repo-cm # 이 이름으로 ConfigMap을 생성해야 함

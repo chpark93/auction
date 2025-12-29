@@ -1,0 +1,9 @@
+spring:
+  elasticsearch:
+    uris: http://localhost:9200
+  kafka:
+    bootstrap-servers: localhost:9092
+
+logging:
+  level:
+    com.ch.auction: DEBUG

@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-repo-cm
+data:
+  user-service-dev.yml: |
+    spring:
+      datasource:
+        url: jdbc:mysql://mysql:3306/users?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+        username: root
+        password: 1234
+      data:
+        redis:
+          host: redis
+          port: 6379
+      kafka:
+        bootstrap-servers: kafka:9092
+    jwt:
+      secret: c2VjcmV0LWtleS1mb3ItYXVjdGlvbi1wcm9qZWN0LXRlc3QtMTIzNDU2Nzg5MA==
+    logging:
+      level:
+        com.ch.auction: DEBUG
+
+  auction-service-dev.yml: |
+    spring:
+      datasource:
+        url: jdbc:mysql://mysql:3306/auctions?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+        username: root
+        password: 1234
+      data:
+        redis:
+          host: redis
+          port: 6379
+      kafka:
+        bootstrap-servers: kafka:9092
+    logging:
+      level:
+        com.ch.auction: DEBUG
+
+  payment-service-dev.yml: |
+    spring:
+      datasource:
+        url: jdbc:mysql://mysql:3306/payments?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+        username: root
+        password: 1234
+      kafka:
+        bootstrap-servers: kafka:9092
+    logging:
+      level:
+        com.ch.auction: DEBUG
+
+  search-service-dev.yml: |
+    spring:
+      elasticsearch:
+        uris: http://elasticsearch:9200
+      kafka:
+        bootstrap-servers: kafka:9092
+    logging:
+      level:
+        com.ch.auction: DEBUG
+
+  chat-service-dev.yml: |
+    spring:
+      data:
+        mongodb:
+          uri: mongodb://mongodb:27017/chat_db
+        redis:
+          host: redis
+          port: 6379
+      kafka:
+        bootstrap-servers: kafka:9092
+    logging:
+      level:
+        com.ch.auction: DEBUG
+
+  admin-service-dev.yml: |
+    logging:
+      level:
+        com.ch.auction: DEBUG
+
+  product-service-dev.yml: |
+    spring:
+      datasource:
+        url: jdbc:mysql://mysql:3306/products?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+        username: root
+        password: 1234
+      kafka:
+        bootstrap-servers: kafka:9092
+    aws:
+      s3:
+        endpoint: http://minio:9000
+        access-key: admin
+        secret-key: password
+        bucket: auction-bucket
+        region: us-east-1
+    logging:
+      level:
+        com.ch.auction: DEBUG

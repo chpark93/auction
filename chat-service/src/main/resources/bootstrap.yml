@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: chat-service
+  profiles:
+    active: dev
+  cloud:
+    config:
+      uri: \${CONFIG_SERVER_URL:http://localhost:8888}
+      fail-fast: true

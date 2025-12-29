@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  labels:
+    app: user-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+        - name: user-service
+          image: auction-service-user:latest # 실제 이미지 주소로 변경 필요
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod" # 또는 "k8s"
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: "http://server-discovery.default.svc.cluster.local:8761/eureka/"
+            - name: CONFIG_SERVER_URL
+              value: "http://server-config.default.svc.cluster.local:8888"
+          # livenessProbe와 readinessProbe는 실제 애플리케이션의 health check 엔드포인트에 맞게 조정해야 합니다.
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10

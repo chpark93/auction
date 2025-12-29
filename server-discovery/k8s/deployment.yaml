@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server-discovery
+  labels:
+    app: server-discovery
+spec:
+  replicas: 1 # Discovery 서버는 보통 단일 인스턴스로 시작하거나, 고가용성 구성 시 3개로 설정합니다.
+  selector:
+    matchLabels:
+      app: server-discovery
+  template:
+    metadata:
+      labels:
+        app: server-discovery
+    spec:
+      containers:
+        - name: server-discovery
+          image: auction-server-discovery:latest # 실제 이미지 주소로 변경 필요
+          ports:
+            - containerPort: 8761
+          # Eureka 서버는 다른 설정 없이 기본값으로 실행 가능합니다.
+          # 환경 변수가 필요하다면 여기에 추가합니다.
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8761
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8761
+            initialDelaySeconds: 20
+            periodSeconds: 10
