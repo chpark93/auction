@@ -1,0 +1,83 @@
+services:
+  # --- Infrastructure Services ---
+  mysql:
+    image: mysql:8.0
+    container_name: auction-service-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: auctions
+    ports:
+      - "3310:3306"
+    volumes:
+      - auction_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - default
+
+  redis:
+    image: redis:alpine
+    container_name: auction-service-redis
+    ports:
+      - "6381:6379"
+    networks:
+      - default
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: auction-service-zookeeper
+    ports:
+      - "2186:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - default
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: auction-service-kafka
+    ports:
+      - "9097:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9097,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    networks:
+      - default
+
+  # --- Auction Service ---
+  # Note: server-discovery and server-config are managed by docker-compose.infra.yml at the root
+  # Make sure to run: docker compose -f ../docker-compose.infra.yml up -d first
+  auction-service:
+    build:
+      context: .
+    container_name: auction-service
+    ports:
+      - "8082:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://server-discovery:8761/eureka/
+      - CONFIG_SERVER_URL=http://server-config:8888
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=auction-kafka:29092
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - default
+      - auction_default
+
+networks:
+  auction_default:
+    external: true
+
+volumes:
+  auction_mysql_data:

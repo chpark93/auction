@@ -3,12 +3,29 @@ server:
 
 spring:
   application:
-    name: service-auction
+    name: auction-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  config:
+    import: "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+  cloud:
+    config:
+      enabled: true
+      fail-fast: true
+      retry:
+        initial-interval: 3000
+        max-attempts: 20
+        max-interval: 10000
+        multiplier: 1.5
   datasource:
-    url: jdbc:mysql://localhost:3306/auctions?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    url: jdbc:mysql://${MYSQL_HOST:auction-service-mysql}:3306/auctions?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
     password: 1234
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
   jpa:
     hibernate:
       ddl-auto: update
@@ -22,7 +39,7 @@ spring:
       host: localhost
       port: 6379
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:auction-kafka:29092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -75,11 +92,11 @@ feign:
       default:
         connectTimeout: 5000
         readTimeout: 5000
-      service-user:
+      user-service:
         url: http://localhost:8082
-      service-search:
+      search-service:
         url: http://localhost:8086
-      service-product:
+      product-service:
         url: http://localhost:8085
   circuitbreaker:
     enabled: true
@@ -99,11 +116,11 @@ resilience4j:
         failureRateThreshold: 50
         eventConsumerBufferSize: 10
     instances:
-      service-user:
+      user-service:
         baseConfig: default
-      service-product:
+      product-service:
         baseConfig: default
-      service-search:
+      search-service:
         baseConfig: default
   
   bulkhead:
@@ -112,13 +129,13 @@ resilience4j:
         maxConcurrentCalls: 100
         maxWaitDuration: 10ms
     instances:
-      service-user:
+      user-service:
         baseConfig: default
         maxConcurrentCalls: 50
-      service-product:
+      product-service:
         baseConfig: default
         maxConcurrentCalls: 50
-      service-search:
+      search-service:
         baseConfig: default
         maxConcurrentCalls: 30
   
@@ -127,9 +144,9 @@ resilience4j:
       default:
         timeoutDuration: 5s
     instances:
-      service-user:
+      user-service:
         baseConfig: default
-      service-product:
+      product-service:
         baseConfig: default
-      service-search:
+      search-service:
         baseConfig: default

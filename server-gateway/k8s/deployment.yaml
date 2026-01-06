@@ -16,12 +16,12 @@ spec:
     spec:
       containers:
         - name: server-gateway
-          image: auction-server-gateway:latest # 실제 이미지 주소로 변경 필요
+          image: chpark1993/auction-server-gateway:0.0.1
           ports:
             - containerPort: 8080
           env:
             - name: SPRING_PROFILES_ACTIVE
-              value: "prod" # 또는 "k8s"
+              value: "prod"
             - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
               value: "http://server-discovery.default.svc.cluster.local:8761/eureka/"
             - name: CONFIG_SERVER_URL

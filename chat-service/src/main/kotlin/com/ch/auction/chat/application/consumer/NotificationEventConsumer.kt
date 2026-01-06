@@ -1,6 +1,5 @@
 package com.ch.auction.chat.application.consumer
 
-import com.ch.auction.common.event.NotificationEvent
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.messaging.simp.SimpMessagingTemplate

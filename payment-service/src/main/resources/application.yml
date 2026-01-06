@@ -3,12 +3,31 @@ server:
 
 spring:
   application:
-    name: service-payment
+    name: payment-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  config:
+    import: "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+  cloud:
+    config:
+      enabled: true
+      fail-fast: true
+      retry:
+        initial-interval: 3000
+        max-attempts: 20
+        max-interval: 10000
+        multiplier: 1.5
   datasource:
-    url: jdbc:mysql://localhost:3306/payments?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    url: jdbc:mysql://mysql:3306/payments?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
     password: 1234
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:auction-kafka:29092}
   jpa:
     hibernate:
       ddl-auto: update

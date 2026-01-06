@@ -1,10 +1,9 @@
 package com.ch.auction.gateway
 
-import com.ch.auction.common.security.jwt.JwtProperties
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
-import org.springframework.boot.context.properties.EnableConfigurationProperties
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.runApplication
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient
 
@@ -16,7 +15,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient
     ]
 )
 @EnableDiscoveryClient
-@EnableConfigurationProperties(JwtProperties::class)
+@ConfigurationPropertiesScan(basePackages = ["com.ch.auction.gateway"])
 class GatewayApplication
 
 fun main(args: Array<String>) {

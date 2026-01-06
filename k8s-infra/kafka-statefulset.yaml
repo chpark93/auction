@@ -4,7 +4,7 @@ metadata:
   name: kafka
 spec:
   serviceName: "kafka"
-  replicas: 1 # 단일 노드 Kafka. 운영 환경에서는 3개 이상을 권장합니다.
+  replicas: 1
   selector:
     matchLabels:
       app: kafka
@@ -22,11 +22,13 @@ spec:
             - name: KAFKA_BROKER_ID
               value: "1"
             - name: KAFKA_ZOOKEEPER_CONNECT
-              value: "zookeeper-0.zookeeper:2181" # StatefulSet의 DNS 주소
+              value: "zookeeper-0.zookeeper:2181"
             - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
-              value: "PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT"
+              value: "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT"
             - name: KAFKA_ADVERTISED_LISTENERS
-              value: "PLAINTEXT_INTERNAL://kafka-0.kafka:29092" # 내부 리스너
+              value: "INTERNAL://kafka-0.kafka:29092,EXTERNAL://localhost:9092" # 클러스터 내부용과 외부 접속용 리스너
+            - name: KAFKA_INTER_BROKER_LISTENER_NAME
+              value: "INTERNAL" # 브로커 간 통신은 INTERNAL 리스너 사용
             - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
               value: "1"
             - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR

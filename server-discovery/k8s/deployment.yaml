@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: server-discovery
-          image: auction-server-discovery:latest # 실제 이미지 주소로 변경 필요
+          image: chpark1993/auction-server-discovery:0.0.3
           ports:
             - containerPort: 8761
           # Eureka 서버는 다른 설정 없이 기본값으로 실행 가능합니다.

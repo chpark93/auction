@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 
-@FeignClient(name = "service-auction", fallback = AuctionClientFallback::class)
+@FeignClient(name = "auction-service", fallback = AuctionClientFallback::class)
 interface AuctionClient {
 
     @GetMapping("/internal/auctions/detail/{auctionId}")

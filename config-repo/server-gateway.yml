@@ -1,0 +1,24 @@
+eureka:
+  client:
+    service-url:
+      defaultZone: http://server-discovery:8761/eureka/
+
+spring:
+  data:
+    redis:
+      host: redis
+      port: 6379
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans
+
+jwt:
+  secret: c2VjcmV0LWtleS1mb3ItYXVjdGlvbi1wcm9qZWN0LXRlc3QtMTIzNDU2Nzg5MA==
+  issuer: auction-service
+  access-token-ttl: 1800000
+  refresh-token-ttl: 604800000

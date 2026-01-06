@@ -6,7 +6,7 @@ import com.ch.auction.payment.infrastructure.client.dto.UserClientDtos
 import org.springframework.cloud.openfeign.FeignClient
 import org.springframework.web.bind.annotation.*
 
-@FeignClient(name = "service-user")
+@FeignClient(name = "user-service")
 interface UserClient {
 
     @GetMapping("/internal/users/{userId}")

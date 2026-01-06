@@ -10,7 +10,6 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory
 import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.server.ServerWebExchange
@@ -121,11 +120,8 @@ class RoleCheckFilter(
 
         val apiResponse = if (message != null) {
             ApiResponse.fail(
-                errorCode = ErrorCode(
-                    code = errorCode.code,
-                    message = message,
-                    status = errorCode.status
-                )
+                code = errorCode.code,
+                message = message
             )
         } else {
             ApiResponse.fail(
@@ -139,4 +135,3 @@ class RoleCheckFilter(
         return response.writeWith(Mono.just(buffer))
     }
 }
-

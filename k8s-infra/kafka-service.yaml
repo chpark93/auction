@@ -4,8 +4,9 @@ metadata:
   name: kafka
 spec:
   ports:
-    - port: 9092
-      name: internal
+    - name: internal
+      port: 9092
+      targetPort: 9092
   selector:
     app: kafka
-  clusterIP: None # Headless Service
+  type: ClusterIP # 서비스들이 'kafka:9092'로 접근할 수 있도록 ClusterIP 서비스로 변경

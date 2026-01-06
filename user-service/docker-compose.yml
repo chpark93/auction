@@ -2,7 +2,7 @@ services:
   # --- Infrastructure Services ---
   mysql:
     image: mysql:8.0
-    container_name: user-mysql
+    container_name: user-service-mysql
     environment:
       MYSQL_ROOT_PASSWORD: 1234
       MYSQL_DATABASE: users
@@ -14,25 +14,31 @@ services:
       test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
       timeout: 20s
       retries: 10
+    networks:
+      - default
 
   redis:
     image: redis:alpine
-    container_name: user-redis
+    container_name: user-service-redis
     ports:
       - "6380:6379"
+    networks:
+      - default
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
-    container_name: user-zookeeper
+    container_name: user-service-zookeeper
     ports:
       - "2182:2181"
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - default
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
-    container_name: user-kafka
+    container_name: user-service-kafka
     ports:
       - "9093:9092"
     depends_on:
@@ -45,43 +51,12 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-
-  # --- Spring Cloud Infrastructure ---
-  server-discovery:
-    build:
-      context: ../auction-msa/server-discovery
-    container_name: user-discovery-server
-    ports:
-      - "8761:8761"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  server-config:
-    build:
-      context: ../auction-msa/server-config
-    container_name: user-config-server
-    ports:
-      - "8888:8888"
-    volumes:
-      - ../config-repo:/config-repo
-    environment:
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://server-discovery:8761/eureka/
-      - SPRING_PROFILES_ACTIVE=native
-      - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:///config-repo
-    depends_on:
-      server-discovery:
-        condition: service_started
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+    networks:
+      - default
 
   # --- User Service ---
+  # Note: server-discovery and server-config are managed by docker-compose.infra.yml at the root
+  # Make sure to run: docker compose -f ../docker-compose.infra.yml up -d first
   user-service:
     build:
       context: .
@@ -92,17 +67,17 @@ services:
       - SPRING_PROFILES_ACTIVE=dev
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://server-discovery:8761/eureka/
       - CONFIG_SERVER_URL=http://server-config:8888
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=auction-kafka:29092
     depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_started
-      kafka:
-        condition: service_started
-      server-discovery:
-        condition: service_started
-      server-config:
-        condition: service_healthy
+      - mysql
+      - redis
+    networks:
+      - default
+      - auction_default
+
+networks:
+  auction_default:
+    external: true
 
 volumes:
   user_mysql_data:

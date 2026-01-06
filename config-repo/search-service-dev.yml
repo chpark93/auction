@@ -1,8 +1,8 @@
 spring:
   elasticsearch:
-    uris: http://localhost:9200
+    uris: http://elasticsearch:9200
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: auction-kafka:29092
 
 logging:
   level:

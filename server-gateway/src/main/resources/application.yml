@@ -1,14 +1,19 @@
-server:
-  port: 8081
-
 spring:
   application:
     name: server-gateway
-  data:
-    redis:
-      host: localhost
-      port: 6379
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  config:
+    import: configserver:${CONFIG_SERVER_URL:http://localhost:8888}
   cloud:
+    config:
+      enabled: true
+      fail-fast: true
+      retry:
+        initial-interval: 3000
+        max-attempts: 20
+        max-interval: 10000
+        multiplier: 1.5
     gateway:
       # Redis Rate Limiter 설정
       redis-rate-limiter:
@@ -21,7 +26,7 @@ spring:
             # Internal APIs - ROLE_ADMIN only
             # /internal/auctions/sync-search - 관리자 권한 필요
             - id: internal-auction-sync
-              uri: lb://SERVICE-AUCTION
+              uri: lb://AUCTION-SERVICE
               predicates:
                 - Path=/internal/auctions/sync-search
                 - Method=POST
@@ -39,32 +44,32 @@ spring:
                     status: 403
             # Auth Service (Public)
             - id: service-user-public
-              uri: lb://SERVICE-USER
+              uri: lb://USER-SERVICE
               predicates:
                 - Path=/api/v1/auth/**
             # User Points (in Payment Service)
             - id: service-payment-points
-              uri: lb://SERVICE-PAYMENT
+              uri: lb://PAYMENT-SERVICE
               predicates:
                 - Path=/api/v1/users/points/**
               filters:
                 - AuthorizationHeaderFilter
             # User Service
             - id: service-user
-              uri: lb://SERVICE-USER
+              uri: lb://USER-SERVICE
               predicates:
                 - Path=/api/v1/users/**
               filters:
                 - AuthorizationHeaderFilter
             # Auction Service (Public - List)
             - id: service-auction-public
-              uri: lb://SERVICE-AUCTION
+              uri: lb://AUCTION-SERVICE
               predicates:
                 - Path=/api/v1/auctions/**
                 - Method=GET
             # Auction Service (Seller) - Rate Limit 적용
             - id: service-auction-seller
-              uri: lb://SERVICE-AUCTION
+              uri: lb://AUCTION-SERVICE
               predicates:
                 - Path=/api/v1/seller/**
               filters:
@@ -76,7 +81,7 @@ spring:
                     key-resolver: "#{@userKeyResolver}"
             # Auction Service (Bid) - Rate Limit 적용
             - id: service-auction-bid
-              uri: lb://SERVICE-AUCTION
+              uri: lb://AUCTION-SERVICE
               predicates:
                 - Path=/api/v1/auctions/**
                 - Method=POST,PUT,DELETE
@@ -91,26 +96,26 @@ spring:
                     deny-empty-key: false                  # 키가 없어도 허용 (IP로 fallback)
             # Admin Service
             - id: service-admin
-              uri: lb://SERVICE-ADMIN
+              uri: lb://ADMIN-SERVICE
               predicates:
                 - Path=/api/v1/admin/**
               filters:
                 - AuthorizationHeaderFilter
             # Auction WebSocket
             - id: service-auction-ws
-              uri: lb://SERVICE-AUCTION
+              uri: lb://AUCTION-SERVICE
               predicates:
                 - Path=/ws-auction/**
             # Payment Service
             - id: service-payment
-              uri: lb://SERVICE-PAYMENT
+              uri: lb://PAYMENT-SERVICE
               predicates:
                 - Path=/api/v1/payments/**
               filters:
                 - AuthorizationHeaderFilter
             # Search Service - Rate Limit 적용
             - id: service-search
-              uri: lb://SERVICE-SEARCH
+              uri: lb://SEARCH-SERVICE
               predicates:
                 - Path=/api/v1/search/**
               filters:
@@ -121,58 +126,65 @@ spring:
                     key-resolver: "#{@ipKeyResolver}"      # 로그인 없이도 사용 가능하므로 IP 기반
             # Chat Service
             - id: service-chat-api
-              uri: lb://SERVICE-CHAT
+              uri: lb://CHAT-SERVICE
               predicates:
                 - Path=/api/v1/chat/**
               filters:
                 - AuthorizationHeaderFilter
             # Chat WebSocket
             - id: service-chat-ws
-              uri: lb://SERVICE-CHAT
+              uri: lb://CHAT-SERVICE
               predicates:
                 - Path=/ws-chat/**
             # Swagger UI Routes for each service
             - id: service-admin-swagger
-              uri: lb://SERVICE-ADMIN
+              uri: lb://ADMIN-SERVICE
               predicates:
                 - Path=/service-admin/v3/api-docs
               filters:
                 - RewritePath=/service-admin/v3/api-docs, /v3/api-docs
             - id: service-user-swagger
-              uri: lb://SERVICE-USER
+              uri: lb://USER-SERVICE
               predicates:
                 - Path=/service-user/v3/api-docs
               filters:
                 - RewritePath=/service-user/v3/api-docs, /v3/api-docs
             - id: service-auction-swagger
-              uri: lb://SERVICE-AUCTION
+              uri: lb://AUCTION-SERVICE
               predicates:
                 - Path=/service-auction/v3/api-docs
               filters:
                 - RewritePath=/service-auction/v3/api-docs, /v3/api-docs
             - id: service-payment-swagger
-              uri: lb://SERVICE-PAYMENT
+              uri: lb://PAYMENT-SERVICE
               predicates:
                 - Path=/service-payment/v3/api-docs
               filters:
                 - RewritePath=/service-payment/v3/api-docs, /v3/api-docs
             - id: service-search-swagger
-              uri: lb://SERVICE-SEARCH
+              uri: lb://SEARCH-SERVICE
               predicates:
                 - Path=/service-search/v3/api-docs
               filters:
                 - RewritePath=/service-search/v3/api-docs, /v3/api-docs
             - id: service-chat-swagger
-              uri: lb://SERVICE-CHAT
+              uri: lb://CHAT-SERVICE
               predicates:
                 - Path=/service-chat/v3/api-docs
               filters:
                 - RewritePath=/service-chat/v3/api-docs, /v3/api-docs
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+server:
+  port: 8080
 
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: http://server-discovery:8761/eureka/
 
 jwt:
   secret: c2VjcmV0LWtleS1mb3ItYXVjdGlvbi1wcm9qZWN0LXRlc3QtMTIzNDU2Nzg5MA==
@@ -201,6 +213,15 @@ springdoc:
         url: /service-chat/v3/api-docs
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: "health"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
   tracing:
     sampling:
       probability: 1.0

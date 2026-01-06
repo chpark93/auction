@@ -5,7 +5,7 @@ import org.springframework.cloud.openfeign.FeignClient
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 
-@FeignClient(name = "service-product", url = "\${feign.client.config.service-product.url}")
+@FeignClient(name = "product-service", url = "\${feign.client.config.service-product.url}")
 interface ProductClient {
 
     @GetMapping("/api/v1/products/{productId}")

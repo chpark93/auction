@@ -1,0 +1,137 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.2.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Kotlin does not yet support 25 JDK target, falling back to Kotlin JVM_24 JVM target
+> Task :clean
+> Task :admin-service:clean
+> Task :auction-service:clean
+> Task :chat-service:clean
+> Task :payment-service:clean
+> Task :product-service:clean
+> Task :search-service:clean
+> Task :server-discovery:clean
+> Task :server-gateway:clean
+> Task :user-service:clean
+> Task :checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :compileKotlin NO-SOURCE
+> Task :compileJava NO-SOURCE
+> Task :processResources NO-SOURCE
+> Task :classes UP-TO-DATE
+> Task :resolveMainClassName
+> Task :bootJar SKIPPED
+> Task :jar
+> Task :assemble
+> Task :check
+> Task :build
+> Task :admin-service:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :admin-service:processResources
+> Task :admin-service:check
+> Task :auction-service:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :auction-service:processResources
+> Task :auction-service:check
+> Task :chat-service:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :chat-service:processResources
+> Task :chat-service:check
+> Task :payment-service:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :payment-service:processResources
+> Task :payment-service:check
+> Task :product-service:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :product-service:processResources
+> Task :product-service:check
+> Task :search-service:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :search-service:processResources
+> Task :search-service:check
+> Task :server-discovery:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server-discovery:processResources
+> Task :server-discovery:check
+> Task :server-gateway:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :server-gateway:processResources
+> Task :server-gateway:check
+> Task :user-service:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :user-service:processResources
+> Task :user-service:check
+> Task :server-discovery:compileKotlin
+> Task :server-discovery:compileJava NO-SOURCE
+> Task :server-discovery:classes
+> Task :server-discovery:resolveMainClassName
+> Task :server-discovery:bootJar
+> Task :server-discovery:jar
+> Task :server-discovery:assemble
+> Task :server-discovery:build
+
+> Task :product-service:compileKotlin FAILED
+e: file:///Users/chpark/Documents/ch/auction/product-service/src/main/kotlin/com/ch/auction/product/ProductApplication.kt:3:30 Unresolved reference 'security'.
+e: file:///Users/chpark/Documents/ch/auction/product-service/src/main/kotlin/com/ch/auction/product/ProductApplication.kt:4:30 Unresolved reference 'security'.
+e: file:///Users/chpark/Documents/ch/auction/product-service/src/main/kotlin/com/ch/auction/product/ProductApplication.kt:5:30 Unresolved reference 'security'.
+e: file:///Users/chpark/Documents/ch/auction/product-service/src/main/kotlin/com/ch/auction/product/ProductApplication.kt:22:22 Only 'const val' can be used in constant expressions.
+e: file:///Users/chpark/Documents/ch/auction/product-service/src/main/kotlin/com/ch/auction/product/ProductApplication.kt:23:9 Annotation argument must be a compile-time constant.
+e: file:///Users/chpark/Documents/ch/auction/product-service/src/main/kotlin/com/ch/auction/product/ProductApplication.kt:26:17 Unresolved reference 'JwtTokenParser'.
+e: file:///Users/chpark/Documents/ch/auction/product-service/src/main/kotlin/com/ch/auction/product/ProductApplication.kt:27:17 Unresolved reference 'JwtTokenProvider'.
+e: file:///Users/chpark/Documents/ch/auction/product-service/src/main/kotlin/com/ch/auction/product/ProductApplication.kt:28:17 Unresolved reference 'JwtProperties'.
+
+> Task :chat-service:compileKotlin FAILED
+e: file:///Users/chpark/Documents/ch/auction/chat-service/src/main/kotlin/com/ch/auction/chat/interfaces/config/SecurityConfig.kt:3:30 Unresolved reference 'security'.
+e: file:///Users/chpark/Documents/ch/auction/chat-service/src/main/kotlin/com/ch/auction/chat/interfaces/config/SecurityConfig.kt:50:17 Unresolved reference 'HeaderAuthenticationFilter'.
+e: file:///Users/chpark/Documents/ch/auction/chat-service/src/main/kotlin/com/ch/auction/chat/interfaces/websocket/StompHandler.kt:4:30 Unresolved reference 'auth'.
+e: file:///Users/chpark/Documents/ch/auction/chat-service/src/main/kotlin/com/ch/auction/chat/interfaces/websocket/StompHandler.kt:19:34 Unresolved reference 'AuthTokenParser'.
+e: file:///Users/chpark/Documents/ch/auction/chat-service/src/main/kotlin/com/ch/auction/chat/interfaces/websocket/StompHandler.kt:41:50 Unresolved reference 'parse'.
+e: file:///Users/chpark/Documents/ch/auction/chat-service/src/main/kotlin/com/ch/auction/chat/interfaces/websocket/StompHandler.kt:44:81 Unresolved reference 'it'.
+
+> Task :payment-service:compileKotlin FAILED
+e: file:///Users/chpark/Documents/ch/auction/payment-service/src/main/kotlin/com/ch/auction/payment/interfaces/config/SecurityConfig.kt:3:30 Unresolved reference 'security'.
+e: file:///Users/chpark/Documents/ch/auction/payment-service/src/main/kotlin/com/ch/auction/payment/interfaces/config/SecurityConfig.kt:47:17 Unresolved reference 'HeaderAuthenticationFilter'.
+
+> Task :server-gateway:compileKotlin
+
+> Task :admin-service:compileKotlin
+w: file:///Users/chpark/Documents/ch/auction/admin-service/src/main/kotlin/com/ch/auction/admin/infrastructure/client/UserClientFallback.kt:30:9 The corresponding parameter in the supertype 'UserClient' is named 'userIds'. This may cause problems when calling this function with named arguments.
+
+> Task :search-service:compileKotlin
+> Task :user-service:compileKotlin
+> Task :auction-service:compileKotlin
+
+FAILURE: Build completed with 3 failures.
+
+1: Task failed with an exception.
+-----------
+* What went wrong:
+Execution failed for task ':chat-service:compileKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+==============================================================================
+
+2: Task failed with an exception.
+-----------
+* What went wrong:
+Execution failed for task ':product-service:compileKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+==============================================================================
+
+3: Task failed with an exception.
+-----------
+* What went wrong:
+Execution failed for task ':payment-service:compileKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+==============================================================================
+
+BUILD FAILED in 20s
+33 actionable tasks: 33 executed

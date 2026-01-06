@@ -1,0 +1,66 @@
+services:
+  # --- Infrastructure Services ---
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    container_name: search-service-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9202:9200"
+    mem_limit: 1g
+    networks:
+      - default
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: search-service-zookeeper
+    ports:
+      - "2190:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - default
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: search-service-kafka
+    ports:
+      - "9101:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9101,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    networks:
+      - default
+
+  # --- Search Service ---
+  # Note: server-discovery and server-config are managed by docker-compose.infra.yml at the root
+  # Make sure to run: docker compose -f ../docker-compose.infra.yml up -d first
+  search-service:
+    build:
+      context: .
+    container_name: search-service
+    ports:
+      - "8084:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://server-discovery:8761/eureka/
+      - CONFIG_SERVER_URL=http://server-config:8888
+    depends_on:
+      - elasticsearch
+    networks:
+      - default
+      - auction_default
+
+networks:
+  auction_default:
+    external: true

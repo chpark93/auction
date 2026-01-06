@@ -36,6 +36,11 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-config")
     
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.10")
+    
+    // JWT
+    implementation("io.jsonwebtoken:jjwt-api:0.12.5")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.5")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.5")
 
     implementation("net.javacrumbs.shedlock:shedlock-spring:5.10.2")
     implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.10.2")

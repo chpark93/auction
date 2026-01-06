@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: server-config
-          image: auction-server-config:latest # 실제 이미지 주소로 변경 필요
+          image: chpark1993/auction-server-config:0.0.1
           ports:
             - containerPort: 8888
           env:

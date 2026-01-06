@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 
 @FeignClient(
-    name = "service-product",
-    url = "\${feign.client.config.service-product.url}",
+    name = "PRODUCT-SERVICE",
+    path = "/internal/products",
     fallback = ProductClientFallback::class
 )
 interface ProductClient {

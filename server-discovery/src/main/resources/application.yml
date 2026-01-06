@@ -10,3 +10,13 @@ eureka:
     register-with-eureka: false
     fetch-registry: false
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health" # health 엔드포인트를 HTTP로 노출
+  endpoint:
+    health:
+      probes:
+        enabled: true # liveness, readiness 프로브 활성화
+      show-details: always

@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: jdbc:mysql://mysql:3306/products?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+  kafka:
+    bootstrap-servers: kafka:9092
+aws:
+  s3:
+    endpoint: http://minio:9000
+    access-key: admin
+    secret-key: password
+    bucket: auction-bucket
+    region: us-east-1

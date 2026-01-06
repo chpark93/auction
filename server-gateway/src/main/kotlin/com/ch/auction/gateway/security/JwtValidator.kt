@@ -1,6 +1,6 @@
 package com.ch.auction.gateway.security
 
-import com.ch.auction.common.security.jwt.JwtProperties
+import com.ch.auction.gateway.security.jwt.JwtProperties
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.io.Decoders
@@ -12,18 +12,14 @@ import javax.crypto.SecretKey
 class JwtValidator(
     private val jwtProperties: JwtProperties
 ) {
-    private val key: SecretKey by lazy {
+    private val secretKey: SecretKey =
         Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtProperties.secret))
-    }
 
-    fun parseClaims(
-        token: String
-    ): Claims {
+    fun parseClaims(token: String): Claims {
         return Jwts.parser()
-            .verifyWith(key)
+            .verifyWith(secretKey)
             .build()
             .parseSignedClaims(token)
             .payload
     }
 }
-

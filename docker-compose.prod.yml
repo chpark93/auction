@@ -119,7 +119,7 @@ services:
     platform: linux/amd64
     container_name: server-gateway
     ports:
-      - "8000:8000"
+      - "8080:8080"
     environment:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://server-discovery:8761/eureka/
       - SPRING_DATA_REDIS_HOST=redis

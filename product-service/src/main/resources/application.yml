@@ -3,10 +3,23 @@ server:
 
 spring:
   application:
-    name: service-product
+    name: product-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  config:
+    import: "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+  cloud:
+    config:
+      enabled: true
+      fail-fast: true
+      retry:
+        initial-interval: 3000
+        max-attempts: 20
+        max-interval: 10000
+        multiplier: 1.5
 
   datasource:
-    url: jdbc:mysql://localhost:3306/products?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+    url: jdbc:mysql://mysql:3306/products?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
     username: root
     password: 1234
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -21,7 +34,7 @@ spring:
         dialect: org.hibernate.dialect.MySQLDialect
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: kafka:29092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -46,7 +59,7 @@ eureka:
 
 aws:
   s3:
-    endpoint: http://localhost:9000
+    endpoint: http://minio:9000
     access-key: admin
     secret-key: password
     bucket: auction-bucket

@@ -5,6 +5,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
     kotlin("jvm") version "2.2.21"
     kotlin("plugin.spring") version "2.2.21"
+    id("com.google.cloud.tools.jib")
 }
 
 group = "com.ch.auction"
@@ -18,18 +19,19 @@ repositories {
     mavenCentral()
 }
 
-dependencies {
-    implementation("org.springframework.cloud:spring-cloud-config-server")
-    implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-}
-
 dependencyManagement {
     imports {
         mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.0.0")
     }
+}
+
+dependencies {
+    implementation("org.springframework.cloud:spring-cloud-config-server")
+    implementation("org.springframework.cloud:spring-cloud-starter-netflix-eureka-client")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
+    implementation("org.jetbrains.kotlin:kotlin-reflect")
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 
 tasks.withType<KotlinCompile> {
@@ -38,6 +40,17 @@ tasks.withType<KotlinCompile> {
     }
 }
 
-tasks.withType<Test> {
-    useJUnitPlatform()
+jib {
+    from {
+        image = "eclipse-temurin:21-jre-alpine"
+    }
+    to {
+        image = System.getenv("DOCKER_IMAGE_PREFIX")?.let { "$it-server-discovery" }
+            ?: "auction-server-discovery"
+    }
+    container {
+        jvmFlags = listOf("-Xms256m", "-Xmx512m", "-XX:+UseContainerSupport")
+        ports = listOf("8761")
+        environment = mapOf("SPRING_PROFILES_ACTIVE" to "prod")
+    }
 }

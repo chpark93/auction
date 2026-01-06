@@ -5,7 +5,7 @@ import org.springframework.cloud.openfeign.FeignClient
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 
-@FeignClient(name = "service-search", path = "/internal/search")
+@FeignClient(name = "search-service", path = "/internal/search")
 interface SearchClient {
     
     @PostMapping("/reindex")
