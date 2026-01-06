@@ -8,9 +8,9 @@ MSA 원칙에 따라 각 마이크로서비스가 **독립적인 MySQL 데이터
 
 ```
 MySQL Container (Port 3306)
-├── users       → service-user
-├── auctions    → service-auction
-└── payments    → service-payment
+├── users       → user-service
+├── auctions    → auction-service
+└── payments    → payment-service
 ```
 
 ## 📂 파일 구조
@@ -20,13 +20,13 @@ auction/
 ├── mysql-init/
 │   └── init.sql                    # 데이터베이스 초기화 스크립트
 ├── docker-compose.yml              # MySQL 볼륨 마운트 설정
-├── service-user/
+├── user-service/
 │   └── src/main/resources/
 │       └── application.yml         # users database 연결 설정
-├── service-auction/
+├── auction-service/
 │   └── src/main/resources/
 │       └── application.yml         # auctions database 연결 설정
-└── service-payment/
+└── payment-service/
     └── src/main/resources/
         └── application.yml         # payments database 연결 설정
 ```
@@ -64,13 +64,13 @@ mysql:
 
 | 서비스 | 데이터베이스   | URL                                |
 |--------|----------|------------------------------------|
-| service-user | users    | `jdbc:mysql://mysql:3306/users`    |
-| service-auction | auctions | `jdbc:mysql://mysql:3306/auctions` |
-| service-payment | payments | `jdbc:mysql://mysql:3306/payments` |
+| user-service | users    | `jdbc:mysql://mysql:3306/users`    |
+| auction-service | auctions | `jdbc:mysql://mysql:3306/auctions` |
+| payment-service | payments | `jdbc:mysql://mysql:3306/payments` |
 
 ### 3. 서비스별 application.yml 설정
 
-#### A. service-user
+#### A. user-service
 
 ```yaml
 spring:
@@ -92,7 +92,7 @@ spring:
 - `Address` (addresses 테이블)
 - `VerificationInfo` (verification_info 테이블)
 
-#### B. service-auction
+#### B. auction-service
 
 ```yaml
 spring:
@@ -114,7 +114,7 @@ spring:
 - `Bid` (bids 테이블)
 - `shedlock` (분산 락 테이블)
 
-#### C. service-payment
+#### C. payment-service
 
 ```yaml
 spring:
@@ -170,9 +170,9 @@ docker exec -it auction-mysql mysql -uroot -ppassword -e "SHOW DATABASES;"
 ```bash
 # IntelliJ IDEA에서 각 서비스 실행
 # 또는 Gradle로 실행
-./gradlew :service-user:bootRun
-./gradlew :service-auction:bootRun
-./gradlew :service-payment:bootRun
+./gradlew :user-service:bootRun
+./gradlew :auction-service:bootRun
+./gradlew :payment-service:bootRun
 ```
 
 ### 3. 테이블 생성 확인
@@ -196,9 +196,9 @@ docker exec -it auction-mysql mysql -uroot -ppassword -e "USE payments; SHOW TAB
 
 | 서비스 | 엔티티 | 외부 참조 |
 |--------|--------|----------|
-| service-user | User, Address | ❌ 없음 |
-| service-auction | Auction, Bid | `userId: Long` (FK 없음) |
-| service-payment | Payment, Order, Delivery | `userId: Long`, `auctionId: Long` (FK 없음) |
+| user-service | User, Address | ❌ 없음 |
+| auction-service | Auction, Bid | `userId: Long` (FK 없음) |
+| payment-service | Payment, Order, Delivery | `userId: Long`, `auctionId: Long` (FK 없음) |
 
 **중요:** 
 - 다른 서비스의 엔티티를 JPA Entity로 참조하지 않음
@@ -208,13 +208,13 @@ docker exec -it auction-mysql mysql -uroot -ppassword -e "USE payments; SHOW TAB
 ### 2. 서비스 간 통신
 
 ```
-service-auction (입찰)
+auction-service (입찰)
     ↓ Feign Client
-service-user (사용자 정보 조회)
+user-service (사용자 정보 조회)
 
-service-auction (경매 종료)
+auction-service (경매 종료)
     ↓ Kafka Event
-service-payment (결제 처리)
+payment-service (결제 처리)
 ```
 
 ## 🛠️ 의존성 확인
@@ -233,7 +233,7 @@ dependencies {
 
 **확인 방법:**
 ```bash
-grep -r "mysql-connector" service-*/build.gradle.kts
+grep -r "mysql-connector" *-service/build.gradle.kts
 ```
 
 ## 📊 데이터베이스 스키마 관리

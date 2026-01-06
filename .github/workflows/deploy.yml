@@ -67,13 +67,13 @@ jobs:
         service:
           - server-discovery
           - server-gateway
-          - service-user
-          - service-auction
-          - service-payment
-          - service-search
-          - service-chat
-          - service-admin
-          - service-product
+          - user-service
+          - auction-service
+          - payment-service
+          - search-service
+          - chat-service
+          - admin-service
+          - product-service
     
     steps:
       - name: Checkout code

@@ -55,13 +55,13 @@ plugins {
 │  │  Matrix Strategy
 │  │  - server-discovery
 │  │  - server-gateway
-│  │  - service-user
-│  │  - service-auction
-│  │  - service-payment
-│  │  - service-search
-│  │  - service-chat
-│  │  - service-admin
-│  │  - service-product
+│  │  - user-service
+│  │  - auction-service
+│  │  - payment-service
+│  │  - search-service
+│  │  - chat-service
+│  │  - admin-service
+│  │  - product-service
 │  └────────────────────────────────────────┘
 │
 │  각 서비스:
@@ -103,18 +103,18 @@ strategy:
     service:
       - server-discovery
       - server-gateway
-      - service-user
-      - service-auction
-      - service-payment
-      - service-search
-      - service-chat
-      - service-admin
-      - service-product
+      - user-service
+      - auction-service
+      - payment-service
+      - search-service
+      - chat-service
+      - admin-service
+      - product-service
 ```
 
 ### 2. Jib로 Docker Daemon 없이 빌드
 ```bash
-./gradlew :service-user:jib
+./gradlew :user-service:jib
 ```
 
 ### 3. Multi-architecture 지원
@@ -170,7 +170,7 @@ Repository → Settings → Secrets and variables → Actions
 
 ```bash
 # 로컬 Docker Daemon에 빌드
-./gradlew :service-user:jibDockerBuild
+./gradlew :user-service:jibDockerBuild
 
 # Docker 이미지 확인
 docker images | grep auction
@@ -187,7 +187,7 @@ export DOCKER_USERNAME={username}
 export DOCKER_PASSWORD={access_token}
 
 # Docker Hub에 Push
-./gradlew :service-user:jib
+./gradlew :user-service:jib
 
 # 성공 메시지 확인
 # Built and pushed image as {username}/auction-service-user:latest
@@ -216,13 +216,13 @@ git push origin main
 ### 서비스 모듈
 - `server-discovery/build.gradle.kts` - Discovery 서비스 Jib 설정
 - `server-gateway/build.gradle.kts` - Gateway 서비스 Jib 설정
-- `service-user/build.gradle.kts` - User 서비스 Jib 설정
-- `service-auction/build.gradle.kts` - Auction 서비스 Jib 설정
-- `service-payment/build.gradle.kts` - Payment 서비스 Jib 설정
-- `service-search/build.gradle.kts` - Search 서비스 Jib 설정
-- `service-chat/build.gradle.kts` - Chat 서비스 Jib 설정
-- `service-admin/build.gradle.kts` - Admin 서비스 Jib 설정
-- `service-product/build.gradle.kts` - Product 서비스 Jib 설정
+- `user-service/build.gradle.kts` - User 서비스 Jib 설정
+- `auction-service/build.gradle.kts` - Auction 서비스 Jib 설정
+- `payment-service/build.gradle.kts` - Payment 서비스 Jib 설정
+- `search-service/build.gradle.kts` - Search 서비스 Jib 설정
+- `chat-service/build.gradle.kts` - Chat 서비스 Jib 설정
+- `admin-service/build.gradle.kts` - Admin 서비스 Jib 설정
+- `product-service/build.gradle.kts` - Product 서비스 Jib 설정
 
 ### 문서
 - `CI_CD_GUIDE.md` - 전체 가이드
